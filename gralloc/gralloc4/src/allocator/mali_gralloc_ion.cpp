@@ -278,9 +278,9 @@ int ion_device::open_and_query_ion()
 }
 
 static int mali_gralloc_ion_sync(const private_handle_t * const hnd,
-                                       const bool read,
-                                       const bool write,
-                                       const bool start)
+                                       const bool /* read */,
+                                       const bool /* write */,
+                                       const bool /* start */)
 {
 	int ret = 0;
 
@@ -289,6 +289,8 @@ static int mali_gralloc_ion_sync(const private_handle_t * const hnd,
 		return -EINVAL;
 	}
 
+	return 0;
+#if defined(GRALLOC_ION_SYNC_ON_LOCK) && GRALLOC_ION_SYNC_ON_LOCK == 1
 	ion_device *dev = ion_device::get();
 	int direction = 0;
 
@@ -314,6 +316,7 @@ static int mali_gralloc_ion_sync(const private_handle_t * const hnd,
 	}
 
 	return ret;
+#endif
 }
 
 

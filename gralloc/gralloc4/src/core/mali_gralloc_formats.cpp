@@ -815,10 +815,6 @@ static void get_active_caps(const format_info_t format,
 
 	if (format.is_yuv)
 	{
-		/* AFBC wide-block is not supported across IP for YUV formats. */
-		producer_mask &= ~MALI_GRALLOC_FORMAT_CAPABILITY_AFBC_WIDEBLK;
-		consumer_mask &= ~MALI_GRALLOC_FORMAT_CAPABILITY_AFBC_WIDEBLK;
-
 		if ((producer_caps & MALI_GRALLOC_FORMAT_CAPABILITY_AFBC_YUV_WRITE) == 0)
 		{
 			producer_mask &= ~MALI_GRALLOC_FORMAT_CAPABILITY_AFBCENABLE_MASK;

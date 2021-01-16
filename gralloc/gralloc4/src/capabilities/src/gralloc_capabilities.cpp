@@ -97,6 +97,8 @@ void get_ip_capabilities(void)
 
 	/* Determine VPU IP capabilities */
 	vpu_runtime_caps.caps_mask |= MALI_GRALLOC_FORMAT_CAPABILITY_OPTIONS_PRESENT;
+	vpu_runtime_caps.caps_mask |= MALI_GRALLOC_FORMAT_CAPABILITY_AFBC_BASIC;
+	vpu_runtime_caps.caps_mask |= MALI_GRALLOC_FORMAT_CAPABILITY_AFBC_YUV_WRITE;
 
 /* Build specific capability changes */
 #if defined(GRALLOC_ARM_NO_EXTERNAL_AFBC) && (GRALLOC_ARM_NO_EXTERNAL_AFBC == 1)

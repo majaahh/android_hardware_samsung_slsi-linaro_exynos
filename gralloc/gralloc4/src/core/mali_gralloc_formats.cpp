@@ -25,6 +25,7 @@
 
 #include "gralloc_priv.h"
 #include "mali_gralloc_bufferallocation.h"
+#include "mali_gralloc_usages.h"
 #include "format_info.h"
 #include "capabilities/gralloc_capabilities.h"
 #include "exynos_format.h"
@@ -120,6 +121,24 @@ static uint16_t get_consumers(uint64_t usage)
 	return consumers;
 }
 
+/*
+ * Video decoder producer can be signalled by a combination of usage flags
+ * (see definition of GRALLOC_USAGE_DECODER).
+ * However, individual HAL usage bits may also signal it.
+ * This function handles both cases.
+ *
+ * @param usage  [in]    Buffer usage.
+ *
+ * @return The corresponding producer flag, or 0 if the producer is not a VPU.
+ */
+static uint16_t get_vpu_producer(uint64_t usage)
+{
+	if (usage & hidl_common::BufferUsage::VIDEO_DECODER)
+	{
+		return MALI_GRALLOC_PRODUCER_VPU;
+	}
+	return 0;
+}
 
 /*
  * Determines all IP producers included by the requested buffer usage.
@@ -166,13 +185,7 @@ static uint16_t get_producers(uint64_t usage)
 		producers |= MALI_GRALLOC_PRODUCER_CAM;
 	}
 
-	/* Video decoder producer is signalled by a combination of usage flags
-	 * (see definition of GRALLOC_USAGE_DECODER).
-	 */
-	if ((usage & GRALLOC_USAGE_DECODER) == GRALLOC_USAGE_DECODER)
-	{
-		producers |= MALI_GRALLOC_PRODUCER_VPU;
-	}
+    producers |= get_vpu_producer(usage);
 
 	return producers;
 }

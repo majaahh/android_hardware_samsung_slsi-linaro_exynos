@@ -756,10 +756,9 @@ static uint64_t get_afbc_format(const uint32_t base_format,
 
 			/*
 			 * Specific producer/consumer combinations benefit from additional
-			 * AFBC features (e.g. GPU --> DPU).
+			 * AFBC features (e.g. * --> GPU).
 			 */
-			if (producer & MALI_GRALLOC_PRODUCER_GPU && consumer & MALI_GRALLOC_CONSUMER_DPU &&
-			    dpu_runtime_caps.caps_mask & MALI_GRALLOC_FORMAT_CAPABILITY_OPTIONS_PRESENT)
+			if (consumer & MALI_GRALLOC_CONSUMER_GPU)
 			{
 				if (producer_caps & MALI_GRALLOC_FORMAT_CAPABILITY_AFBC_SPLITBLK &&
 				    consumer_caps & MALI_GRALLOC_FORMAT_CAPABILITY_AFBC_SPLITBLK)

@@ -94,6 +94,7 @@ arm_gralloc_allocator_cc_defaults {
         "libhardware",
         "liblog",
         "libcutils",
+        "libdmabufheap",
         "libion_exynos",
         "libsync",
         "libutils",

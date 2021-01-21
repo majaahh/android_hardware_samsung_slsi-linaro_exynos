@@ -113,37 +113,31 @@ typedef enum
 #define GRALLOC_USAGE_DECODER (GRALLOC_USAGE_HW_TEXTURE | GRALLOC_USAGE_HW_COMPOSER | GRALLOC_USAGE_EXTERNAL_DISP)
 
 static const uint64_t VALID_USAGE =
-    GRALLOC_USAGE_SW_READ_MASK |       /* 0x0FU */
-    GRALLOC_USAGE_SW_WRITE_MASK |      /* 0xF0U */
-    GRALLOC_USAGE_HW_TEXTURE |         /* 1U << 8 */
-    GRALLOC_USAGE_HW_RENDER |          /* 1U << 9 */
-    GRALLOC_USAGE_HW_2D |              /* 1U << 10 */
-    GRALLOC_USAGE_HW_COMPOSER |        /* 1U << 11 */
-    GRALLOC_USAGE_HW_FB |              /* 1U << 12 */
-    GRALLOC_USAGE_EXTERNAL_DISP |      /* 1U << 13 */
-    GRALLOC_USAGE_PROTECTED |          /* 1U << 14 */
-    GRALLOC_USAGE_CURSOR |             /* 1U << 15 */
-    GRALLOC_USAGE_HW_VIDEO_ENCODER |   /* 1U << 16 */
-    GRALLOC_USAGE_HW_CAMERA_WRITE |    /* 1U << 17 */
-    GRALLOC_USAGE_HW_CAMERA_READ |     /* 1U << 18 */
-    GRALLOC_USAGE_RENDERSCRIPT |       /* 1U << 20 */
-    GRALLOC_USAGE_HW_VIDEO_DECODER |   /* 1U << 22 */
+    GRALLOC_USAGE_SW_READ_MASK |            /* 0x0FU */
+    GRALLOC_USAGE_SW_WRITE_MASK |           /* 0xF0U */
+    GRALLOC_USAGE_HW_TEXTURE |              /* 1U << 8 */
+    GRALLOC_USAGE_HW_RENDER |               /* 1U << 9 */
+    GRALLOC_USAGE_HW_2D |                   /* 1U << 10 */
+    GRALLOC_USAGE_HW_COMPOSER |             /* 1U << 11 */
+    GRALLOC_USAGE_HW_FB |                   /* 1U << 12 */
+    GRALLOC_USAGE_EXTERNAL_DISP |           /* 1U << 13 */
+    GRALLOC_USAGE_PROTECTED |               /* 1U << 14 */
+    GRALLOC_USAGE_CURSOR |                  /* 1U << 15 */
+    GRALLOC_USAGE_HW_VIDEO_ENCODER |        /* 1U << 16 */
+    GRALLOC_USAGE_HW_CAMERA_WRITE |         /* 1U << 17 */
+    GRALLOC_USAGE_HW_CAMERA_READ |          /* 1U << 18 */
+    GRALLOC_USAGE_RENDERSCRIPT |            /* 1U << 20 */
+    GRALLOC_USAGE_HW_VIDEO_DECODER |        /* 1U << 22 */
     /* Producer and consumer usage are combined, but on Gralloc version 1 there is no way to differentiate these as they
      * are mapped to the same value (1U << 23). */
-    GRALLOC_USAGE_SENSOR_DIRECT_DATA | /* 1U << 23 */
-    GRALLOC_USAGE_GPU_DATA_BUFFER |    /* 1U << 24 */
+    GRALLOC_USAGE_SENSOR_DIRECT_DATA |      /* 1U << 23 */
+    GRALLOC_USAGE_GPU_DATA_BUFFER |         /* 1U << 24 */
 
-    GRALLOC_USAGE_PRIVATE_19 |         /* 1U << 48 */
-    GRALLOC_USAGE_PRIVATE_18 |         /* 1U << 49 */
-    GRALLOC_USAGE_PRIVATE_17 |         /* 1U << 50 */
-    GRALLOC_USAGE_PRIVATE_16 |         /* 1U << 51 */
-    GRALLOC_USAGE_PRIVATE_15 |         /* 1U << 52 */
-    GRALLOC_USAGE_PRIVATE_14 |         /* 1U << 53 */
-    GRALLOC_USAGE_PRIVATE_13 |         /* 1U << 54 */
-    GRALLOC_USAGE_PRIVATE_11 |         /* 1U << 56 */
-    GRALLOC_USAGE_PRIVATE_0 |          /* 1U << 28 */
-    GRALLOC_USAGE_PRIVATE_1 |          /* 1U << 29 */
-    0 |
-    -1;
+    GRALLOC_USAGE_ROIINFO |                 /* 1U << 52 */
+    MALI_GRALLOC_USAGE_AFBC_PADDING |       /* 1U << 53 */
+    MALI_GRALLOC_USAGE_FORCE_BACKBUFFER |   /* 1U << 54 */
+    GRALLOC_USAGE_SBWC_REQUEST_10BIT |      /* 1U << 56 */
+    MALI_GRALLOC_USAGE_NO_AFBC |            /* 1U << 29 */
+    0;
 
 #endif /*MALI_GRALLOC_USAGES_H_*/

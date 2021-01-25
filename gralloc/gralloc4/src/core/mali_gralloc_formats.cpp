@@ -68,14 +68,12 @@ static uint16_t get_consumers(uint64_t usage)
 {
 	uint16_t consumers = 0;
 
-	/* Private usage is not applicable to consumer derivation */
-	usage &= ~GRALLOC_USAGE_PRIVATE_MASK;
 	/* Exclude usages also not applicable to consumer derivation */
 	usage &= ~GRALLOC_USAGE_PROTECTED;
 
 	get_ip_capabilities();
 
-	if (usage == GRALLOC_USAGE_HW_COMPOSER)
+	if ((usage & GRALLOC_USAGE_PUBLIC_MASK) == GRALLOC_USAGE_HW_COMPOSER)
 	{
 		consumers = MALI_GRALLOC_CONSUMER_DPU;
 	}
@@ -153,8 +151,6 @@ static uint16_t get_producers(uint64_t usage)
 {
 	uint16_t producers = 0;
 
-	/* Private usage is not applicable to producer derivation */
-	usage &= ~GRALLOC_USAGE_PRIVATE_MASK;
 	/* Exclude usages also not applicable to producer derivation */
 	usage &= ~GRALLOC_USAGE_PROTECTED;
 

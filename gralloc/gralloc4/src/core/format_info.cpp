@@ -32,6 +32,7 @@
  * the gralloc library and not by clients directly.
  */
 const format_info_t formats[] = {
+	/* BEGIN ALIGNED SECTION */
 	{
 		.id = MALI_GRALLOC_FORMAT_INTERNAL_RGB_565,
 		.npln = 1, .ncmp = { 3, 0, 0 }, .bps = 6, .bpp_afbc = { 16, 0, 0 }, .bpp = { 16, 0, 0 },
@@ -386,6 +387,7 @@ const format_info_t formats[] = {
 	{ .id = HAL_PIXEL_FORMAT_EXYNOS_YCbCr_420_SPN_10B_SBWC_L40,  .npln = 2, .ncmp = {1, 2, 0}, .bps = 10, .bpp_afbc = { 0, 0, 0 },   .bpp = { 16, 32, 0 }, .hsub = 2, .vsub = 2, .align_w = 2, .align_h = 2, ALIGN_W_CPU_DEFAULT, .tile_size = 1, .has_alpha = false, .is_rgb = false, .is_yuv = true,  .afbc = false,  .linear = true, .yuv_transform = false, .flex = true,  },
 	{ .id = HAL_PIXEL_FORMAT_EXYNOS_YCbCr_420_SPN_10B_SBWC_L60,  .npln = 2, .ncmp = {1, 2, 0}, .bps = 10, .bpp_afbc = { 0, 0, 0 },   .bpp = { 16, 32, 0 }, .hsub = 2, .vsub = 2, .align_w = 2, .align_h = 2, ALIGN_W_CPU_DEFAULT, .tile_size = 1, .has_alpha = false, .is_rgb = false, .is_yuv = true,  .afbc = false,  .linear = true, .yuv_transform = false, .flex = true,  },
 	{ .id = HAL_PIXEL_FORMAT_EXYNOS_YCbCr_420_SPN_10B_SBWC_L80,  .npln = 2, .ncmp = {1, 2, 0}, .bps = 10, .bpp_afbc = { 0, 0, 0 },   .bpp = { 16, 32, 0 }, .hsub = 2, .vsub = 2, .align_w = 2, .align_h = 2, ALIGN_W_CPU_DEFAULT, .tile_size = 1, .has_alpha = false, .is_rgb = false, .is_yuv = true,  .afbc = false,  .linear = true, .yuv_transform = false, .flex = true,  },
+	/* END ALIGNED SECTION */
 };
 const size_t num_formats = sizeof(formats)/sizeof(formats[0]);
 
@@ -394,6 +396,7 @@ const size_t num_formats = sizeof(formats)/sizeof(formats[0]);
  * Where IP does not support a capability, it should be defined and not set.
  */
 const format_ip_support_t formats_ip_support[] = {
+	/* BEGIN ALIGNED SECTION */
 	{
 		.id = MALI_GRALLOC_FORMAT_INTERNAL_RGB_565,
 		.cpu_rd = F_LIN,
@@ -838,7 +841,10 @@ const format_ip_support_t formats_ip_support[] = {
 		.vpu_wr = F_NONE,
 		.cam_wr = F_LIN,
 	},
+	/* END ALIGNED SECTION */
+
 	/* Exynos Formats */
+	/* BEGIN ALIGNED SECTION */
 	{ .id = HAL_PIXEL_FORMAT_EXYNOS_YCrCb_420_SP_M,              .cpu_wr = F_LIN,  .cpu_rd = F_LIN,   .gpu_wr = F_LIN         , .gpu_rd = F_LIN         , .dpu_wr = F_NONE, .dpu_rd = F_LIN,               .dpu_aeu_wr = F_NONE, .vpu_wr = F_LIN,  .vpu_rd = F_LIN},
 	{ .id = HAL_PIXEL_FORMAT_EXYNOS_YCrCb_420_SP_M_FULL,         .cpu_wr = F_LIN,  .cpu_rd = F_LIN,   .gpu_wr = F_LIN         , .gpu_rd = F_LIN         , .dpu_wr = F_NONE, .dpu_rd = F_LIN,               .dpu_aeu_wr = F_NONE, .vpu_wr = F_LIN,  .vpu_rd = F_LIN},
 	{ .id = HAL_PIXEL_FORMAT_EXYNOS_YCbCr_420_SP_M,              .cpu_wr = F_LIN,  .cpu_rd = F_LIN,   .gpu_wr = F_LIN         , .gpu_rd = F_LIN         , .dpu_wr = F_NONE, .dpu_rd = F_LIN,               .dpu_aeu_wr = F_NONE, .vpu_wr = F_LIN,  .vpu_rd = F_LIN},
@@ -870,6 +876,7 @@ const format_ip_support_t formats_ip_support[] = {
 	{ .id = HAL_PIXEL_FORMAT_EXYNOS_YCbCr_420_SPN_10B_SBWC_L40,  .cpu_wr = F_LIN,  .cpu_rd = F_LIN,   .gpu_wr = F_LIN         , .gpu_rd = F_LIN         , .dpu_wr = F_NONE, .dpu_rd = F_LIN,               .dpu_aeu_wr = F_NONE, .vpu_wr = F_LIN,  .vpu_rd = F_LIN},
 	{ .id = HAL_PIXEL_FORMAT_EXYNOS_YCbCr_420_SPN_10B_SBWC_L60,  .cpu_wr = F_LIN,  .cpu_rd = F_LIN,   .gpu_wr = F_LIN         , .gpu_rd = F_LIN         , .dpu_wr = F_NONE, .dpu_rd = F_LIN,               .dpu_aeu_wr = F_NONE, .vpu_wr = F_LIN,  .vpu_rd = F_LIN},
 	{ .id = HAL_PIXEL_FORMAT_EXYNOS_YCbCr_420_SPN_10B_SBWC_L80,  .cpu_wr = F_LIN,  .cpu_rd = F_LIN,   .gpu_wr = F_LIN         , .gpu_rd = F_LIN         , .dpu_wr = F_NONE, .dpu_rd = F_LIN,               .dpu_aeu_wr = F_NONE, .vpu_wr = F_LIN,  .vpu_rd = F_LIN},
+	/* END ALIGNED SECTION */
 };
 
 const size_t num_ip_formats = sizeof(formats_ip_support)/sizeof(formats_ip_support[0]);

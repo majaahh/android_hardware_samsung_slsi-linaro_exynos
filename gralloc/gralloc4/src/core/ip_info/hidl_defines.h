@@ -133,7 +133,6 @@ enum class BufferUsage : uint64_t {
         PRIVATE_NOZEROED = (1ULL << 58),
         PRIVATE_PRIVATE_NONSECURE = (1ULL << 59),
         PRIVATE_VIDEO_PRIVATE_DATA = (1ULL << 60),
-        PRIVATE_VIDEO_EXT = (1ULL << 61),
         PRIVATE_DAYDREAM_SINGLE_BUFFER_MODE = (1ULL << 62),
         PRIVATE_YUV_RANGE_FULL = (1ULL << 63),
 };

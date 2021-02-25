@@ -31,9 +31,7 @@ static inline unsigned int _select_heap(uint64_t consumer_usage, uint64_t produc
 		if (GRALLOC1_SLSI_USAGE_CHECK(producer_usage, GRALLOC1_PRODUCER_USAGE_PRIVATE_NONSECURE))
 			heap_mask = EXYNOS_ION_HEAP_SYSTEM_MASK;
 		else {
-			if (GRALLOC1_SLSI_USAGE_CHECK(consumer_usage, GRALLOC1_CONSUMER_USAGE_VIDEO_EXT))
-				heap_mask = EXYNOS_ION_HEAP_VIDEO_STREAM_MASK;
-			else if ((consumer_usage & GRALLOC1_CONSUMER_USAGE_HWCOMPOSER) &&
+			if ((consumer_usage & GRALLOC1_CONSUMER_USAGE_HWCOMPOSER) &&
 					!(consumer_usage & GRALLOC1_CONSUMER_USAGE_GPU_TEXTURE) &&
 					!(producer_usage & GRALLOC1_PRODUCER_USAGE_GPU_RENDER_TARGET))
 				heap_mask = EXYNOS_ION_HEAP_VIDEO_SCALER_MASK;

@@ -219,8 +219,8 @@ bool get_alloc_type(const uint64_t format_ext,
 		/* YUV transform shall not be enabled for a YUV format */
 		if ((formats[format_idx].is_yuv == true) && (format_ext & MALI_GRALLOC_INTFMT_AFBC_YUV_TRANSFORM))
 		{
-			MALI_GRALLOC_LOGW("YUV Transform is incorrectly enabled for format = 0x%x. Extended internal format = 0x%" PRIx64 "\n",
-			       formats[format_idx].id, format_ext);
+			MALI_GRALLOC_LOGW("YUV Transform is incorrectly enabled for format = (%s 0x%x). Extended internal format = (%s 0x%" PRIx64 ")\n",
+				format_name(formats[format_idx].id), formats[format_idx].id, format_name(format_ext), format_ext);
 		}
 
 		/* Determine primary AFBC (superblock) type. */
@@ -338,7 +338,8 @@ void init_afbc(uint8_t *buf, const uint64_t alloc_format,
 	 */
 	const uint32_t layout = is_subsampled_yuv(base_format) && !is_multi_plane ? 1 : 0;
 
-	MALI_GRALLOC_LOGV("Writing AFBC header layout %d for format %" PRIx32, layout, base_format);
+	MALI_GRALLOC_LOGV("Writing AFBC header layout %d for format (%s %" PRIx32 ")",
+		layout, format_name(base_format), base_format);
 
 	for (uint32_t i = 0; i < n_headers; i++)
 	{
@@ -755,7 +756,8 @@ static bool validate_format(const format_info_t * const format,
 		 */
 		if (format->afbc == false)
 		{
-			MALI_GRALLOC_LOGE("ERROR: AFBC selected but not supported for base format: 0x%" PRIx32, format->id);
+			MALI_GRALLOC_LOGE("ERROR: AFBC selected but not supported for base format: (%s 0x%" PRIx32")",
+				format_name(format->id), format->id);
 			return false;
 		}
 
@@ -766,8 +768,8 @@ static bool validate_format(const format_info_t * const format,
 		if (((format->npln == 1 && alloc_type.is_multi_plane) ||
 		    (format->npln > 1 && !alloc_type.is_multi_plane)))
 		{
-			MALI_GRALLOC_LOGE("ERROR: Format (%" PRIx32 ", num planes: %u) is incompatible with %s-plane AFBC request",
-			      format->id, format->npln, (alloc_type.is_multi_plane) ? "multi" : "single");
+			MALI_GRALLOC_LOGE("ERROR: Format ((%s %" PRIx32 "), num planes: %u) is incompatible with %s-plane AFBC request",
+				format_name(format->id), format->id, format->npln, (alloc_type.is_multi_plane) ? "multi" : "single");
 			return false;
 		}
 	}
@@ -775,7 +777,8 @@ static bool validate_format(const format_info_t * const format,
 	{
 		if (format->linear == false)
 		{
-			MALI_GRALLOC_LOGE("ERROR: Uncompressed format requested but not supported for base format: %" PRIx32, format->id);
+			MALI_GRALLOC_LOGE("ERROR: Uncompressed format requested but not supported for base format: (%s %" PRIx32 ")",
+				format_name(format->id), format->id);
 			return false;
 		}
 	}
@@ -941,7 +944,8 @@ static int prepare_descriptor_exynos_formats(
 			break;
 
 		default:
-			MALI_GRALLOC_LOGE("invalid yuv format %" PRIx64, bufDescriptor->alloc_format);
+			MALI_GRALLOC_LOGE("invalid yuv format (%s %" PRIx64 ")", format_name(bufDescriptor->alloc_format),
+				bufDescriptor->alloc_format);
 			return -1;
 	}
 
@@ -995,8 +999,8 @@ int mali_gralloc_derive_format_and_size(buffer_descriptor_t * const bufDescripto
 	                                                         bufDescriptor->width * bufDescriptor->height);
 	if (bufDescriptor->alloc_format == MALI_GRALLOC_FORMAT_INTERNAL_UNDEFINED)
 	{
-		MALI_GRALLOC_LOGE("ERROR: Unrecognized and/or unsupported format 0x%" PRIx64 " and usage 0x%" PRIx64,
-		       bufDescriptor->hal_format, usage);
+		MALI_GRALLOC_LOGE("ERROR: Unrecognized and/or unsupported format (%s 0x%" PRIx64 ") and usage 0x%" PRIx64,
+		       format_name(bufDescriptor->hal_format), bufDescriptor->hal_format, usage);
 		return -EINVAL;
 	}
 
@@ -1005,7 +1009,8 @@ int mali_gralloc_derive_format_and_size(buffer_descriptor_t * const bufDescripto
 	{
 		return -EINVAL;
 	}
-	MALI_GRALLOC_LOGV("alloc_format: 0x%" PRIx64 " format_idx: %d", bufDescriptor->alloc_format, format_idx);
+	MALI_GRALLOC_LOGV("alloc_format: (%s 0x%" PRIx64 ") format_idx: %d",
+		format_name(bufDescriptor->alloc_format), bufDescriptor->alloc_format, format_idx);
 
 	/*
 	 * Obtain allocation type (uncompressed, AFBC basic, etc...)

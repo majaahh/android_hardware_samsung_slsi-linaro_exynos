@@ -42,9 +42,6 @@
 static FormatManager m_format_manager;
 #endif
 
-/* MSCL Padding */
-#define MSCL_ALIGN     128
-#define MSCL_EXT_SIZE  512
 #define EXT_SIZE       256
 
 /* Default align values for Exynos */
@@ -963,7 +960,10 @@ static int prepare_descriptor_exynos_formats(
 			}
 		}
 
-		/* TODO: is there a need to check the condition for padding like in older gralloc? */
+		/* TODO(b/183073089): Removing the following size hacks make video playback
+		 * fail. Need to investigate more for the root cause. Copying the original
+		 * comment from upstream below */
+		/* is there a need to check the condition for padding like in older gralloc? */
 		/* Add MSCL_EXT_SIZE */
 		/* MSCL_EXT_SIZE + MSCL_EXT_SIZE/2 + ext_size */
 		size += 1024;
@@ -1092,11 +1092,6 @@ int mali_gralloc_derive_format_and_size(buffer_descriptor_t * const bufDescripto
 
 	/* MFC requires EXT_SIZE padding */
 	bufDescriptor->alloc_sizes[0] += EXT_SIZE;
-
-	if (bufDescriptor->width % MSCL_ALIGN)
-	{
-		bufDescriptor->alloc_sizes[0] += MSCL_EXT_SIZE;
-	}
 
 	if(usage == (GRALLOC1_CONSUMER_USAGE_CAMERA | GRALLOC1_PRODUCER_USAGE_CAMERA))
 	{

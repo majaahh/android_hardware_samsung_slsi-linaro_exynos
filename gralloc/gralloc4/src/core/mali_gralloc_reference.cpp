@@ -51,9 +51,6 @@ int mali_gralloc_reference_retain(buffer_handle_t handle)
 
 	int retval= mali_gralloc_ion_map(hnd);
 
-	/* Import ION handle to let ION driver know who's using the buffer */
-	import_exynos_ion_handles(hnd);
-
 	pthread_mutex_unlock(&s_map_lock);
 
 	return retval;
@@ -95,7 +92,6 @@ int mali_gralloc_reference_release(buffer_handle_t handle, bool canFree)
 		if (hnd->ref_count == 0)
 		{
 			mali_gralloc_ion_unmap(hnd);
-			free_exynos_ion_handles(hnd);
 
 			/* TODO: Make this unmapping of shared meta fd into a function? */
 			if (hnd->attr_base)

@@ -71,6 +71,9 @@ arm_gralloc_cc_defaults {
             cflags: ["-DPLATFORM_SDK_VERSION=%d"],
         },
     },
+    shared_libs: [
+        "android.hardware.graphics.common-V4-ndk",
+    ],
     header_libs: [
         "libgralloc4_headers_exynos",
     ],

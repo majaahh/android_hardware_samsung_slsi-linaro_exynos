@@ -523,6 +523,25 @@ static void update_yv12_stride(int8_t plane,
 }
 
 
+/*
+ * Logs and returns true if deprecated usage bits are found
+ *
+ * At times, framework introduces new usage flags which are identical to what
+ * vendor has been using internally. This method logs those bits and returns
+ * true if there is any deprecated usage bit.
+ *
+ * TODO(layog@): This check is also performed again during format deduction. At
+ * that point, the allocation is not aborted, just a log is printed to ALOGE
+ * (matched against `VALID_USAGE`). These should be aligned.
+ */
+static bool log_deprecated_usage_flags(uint64_t usage) {
+	if (usage & MALI_GRALLOC_USAGE_FRONTBUFFER) {
+		MALI_GRALLOC_LOGW("Using deprecated FRONTBUFFER usage bit, please upgrade to BufferUsage::FRONT_BUFFER");
+		return true;
+	}
+
+	return false;
+}
 
 /*
  * Calculate allocation size.
@@ -1118,6 +1137,11 @@ int mali_gralloc_buffer_allocate(const gralloc_buffer_descriptor_t *descriptors,
 	for (uint32_t i = 0; i < numDescriptors; i++)
 	{
 		buffer_descriptor_t * const bufDescriptor = (buffer_descriptor_t *)(descriptors[i]);
+		uint64_t usage = bufDescriptor->producer_usage | bufDescriptor->consumer_usage;
+
+		if (log_deprecated_usage_flags(usage)) {
+			return -EINVAL;
+		}
 
 		/* Derive the buffer size from descriptor parameters */
 		err = mali_gralloc_derive_format_and_size(bufDescriptor);

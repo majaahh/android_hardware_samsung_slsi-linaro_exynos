@@ -36,7 +36,7 @@ int mali_gralloc_reference_retain(buffer_handle_t handle)
 	private_handle_t *hnd = (private_handle_t *)handle;
 	pthread_mutex_lock(&s_map_lock);
 
-	if (hnd->allocating_pid == getpid() || hnd->remote_pid == getpid())
+	if (hnd->remote_pid == getpid())
 	{
 		hnd->ref_count++;
 		pthread_mutex_unlock(&s_map_lock);
@@ -73,18 +73,7 @@ int mali_gralloc_reference_release(buffer_handle_t handle)
 		return -EINVAL;
 	}
 
-	/* TODO: reference_release is never used by allocating pid.
-	 * This if statement should be removed */
-	if (hnd->allocating_pid == getpid())
-	{
-		hnd->ref_count--;
-
-		if (hnd->ref_count == 0)
-		{
-			mali_gralloc_buffer_free(handle);
-		}
-	}
-	else if (hnd->remote_pid == getpid()) // never unmap buffers that were not imported into this process
+	if (hnd->remote_pid == getpid()) // never unmap buffers that were not imported into this process
 	{
 		hnd->ref_count--;
 

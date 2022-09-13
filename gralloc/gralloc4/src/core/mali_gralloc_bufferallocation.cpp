@@ -548,7 +548,7 @@ static void update_yv12_stride(int8_t plane,
  * (matched against `VALID_USAGE`). These should be aligned.
  */
 static bool log_deprecated_usage_flags(uint64_t usage) {
-	if (usage & MALI_GRALLOC_USAGE_FRONTBUFFER) {
+	if (usage & DEPRECATED_MALI_GRALLOC_USAGE_FRONTBUFFER) {
 		MALI_GRALLOC_LOGW("Using deprecated FRONTBUFFER usage bit, please upgrade to BufferUsage::FRONT_BUFFER");
 		return true;
 	}

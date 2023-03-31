@@ -1199,7 +1199,6 @@ int mali_gralloc_buffer_free(buffer_handle_t pHandle)
 
 	dump_buffer_free(hnd);
 
-	free_exynos_ion_handles(hnd);
 	mali_gralloc_ion_free(hnd);
 	gralloc_shared_memory_free(hnd);
 

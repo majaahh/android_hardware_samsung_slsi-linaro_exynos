@@ -25,7 +25,6 @@ unsigned long callingPid() {
 GrallocAllocator::GrallocAllocator() {}
 
 GrallocAllocator::~GrallocAllocator() {
-    mali_gralloc_ion_close();
 }
 
 ndk::ScopedAStatus GrallocAllocator::allocate(const std::vector<uint8_t>& descriptor, int32_t count,

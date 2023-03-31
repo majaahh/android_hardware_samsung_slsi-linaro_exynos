@@ -41,7 +41,6 @@ GrallocMapper::GrallocMapper()
 
 GrallocMapper::~GrallocMapper()
 {
-	mali_gralloc_ion_close();
 }
 
 Return<void> GrallocMapper::createDescriptor(const BufferDescriptorInfo &descriptorInfo, createDescriptor_cb hidl_cb)

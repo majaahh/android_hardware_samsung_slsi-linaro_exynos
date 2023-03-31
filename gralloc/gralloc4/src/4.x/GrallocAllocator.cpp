@@ -46,7 +46,6 @@ GrallocAllocator::GrallocAllocator()
 
 GrallocAllocator::~GrallocAllocator()
 {
-	mali_gralloc_ion_close();
 }
 
 Return<void> GrallocAllocator::allocate(const BufferDescriptor &descriptor, uint32_t count, allocate_cb hidl_cb)

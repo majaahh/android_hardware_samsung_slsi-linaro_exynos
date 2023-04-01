@@ -52,31 +52,12 @@
 static const char kDmabufSensorDirectHeapName[] = "sensor_direct_heap";
 static const char kDmabufVscalerSecureHeapName[] = "vscaler-secure";
 
-struct ion_device
-{
-	static ion_device *get()
-	{
-		static ion_device dev;
-		if (!dev.buffer_allocator)
-		{
-			dev.buffer_allocator = std::make_unique<BufferAllocator>();
-			if (!dev.buffer_allocator)
-			{
-				ALOGE("Unable to create BufferAllocator object");
-				return nullptr;
-			}
-		}
+BufferAllocator& get_allocator() {
+		static BufferAllocator allocator;
+		return allocator;
+}
 
-		return &dev;
-	}
-
-	int alloc_from_dmabuf_heap(uint64_t usage, size_t size);
-
-private:
-	std::unique_ptr<BufferAllocator> buffer_allocator;
-};
-
-static std::string select_dmabuf_heap(uint64_t usage)
+std::string select_dmabuf_heap(uint64_t usage)
 {
 	const bool cached = (usage & GRALLOC_USAGE_SW_READ_MASK) == GRALLOC_USAGE_SW_READ_OFTEN;
 	const char *system_heap = cached ? kDmabufSystemHeapName : kDmabufSystemUncachedHeapName;
@@ -117,17 +98,17 @@ static std::string select_dmabuf_heap(uint64_t usage)
 	return system_heap;
 }
 
-int ion_device::alloc_from_dmabuf_heap(uint64_t usage, size_t size)
+int alloc_from_dmabuf_heap(uint64_t usage, size_t size)
 {
 	ATRACE_CALL();
-	if (size == 0 || !buffer_allocator)
+	if (size == 0)
 	{
 		return -1;
 	}
 
 	const auto heap_name = select_dmabuf_heap(usage);
 	ATRACE_NAME(("alloc_from_dmabuf_heap " + heap_name).c_str());
-	int shared_fd = buffer_allocator->Alloc(heap_name, size, 0);
+	int shared_fd = get_allocator().Alloc(heap_name, size, 0);
 	if (shared_fd < 0)
 	{
 		ALOGE("Allocation failed for heap %s error: %d\n", heap_name.c_str(), shared_fd);
@@ -136,7 +117,7 @@ int ion_device::alloc_from_dmabuf_heap(uint64_t usage, size_t size)
 	return shared_fd;
 }
 
-static int mali_gralloc_ion_sync(const private_handle_t * const hnd,
+int mali_gralloc_ion_sync(const private_handle_t * const hnd,
                                        const bool /* read */,
                                        const bool /* write */,
                                        const bool /* start */)
@@ -150,16 +131,6 @@ static int mali_gralloc_ion_sync(const private_handle_t * const hnd,
 }
 
 
-/*
- * Signal start of CPU access to the DMABUF exported from ION.
- *
- * @param hnd   [in]    Buffer handle
- * @param read  [in]    Flag indicating CPU read access to memory
- * @param write [in]    Flag indicating CPU write access to memory
- *
- * @return              0 in case of success
- *                      errno for all error cases
- */
 int mali_gralloc_ion_sync_start(const private_handle_t * const hnd,
                                 const bool read,
                                 const bool write)
@@ -168,16 +139,6 @@ int mali_gralloc_ion_sync_start(const private_handle_t * const hnd,
 }
 
 
-/*
- * Signal end of CPU access to the DMABUF exported from ION.
- *
- * @param hnd   [in]    Buffer handle
- * @param read  [in]    Flag indicating CPU read access to memory
- * @param write [in]    Flag indicating CPU write access to memory
- *
- * @return              0 in case of success
- *                      errno for all error cases
- */
 int mali_gralloc_ion_sync_end(const private_handle_t * const hnd,
                               const bool read,
                               const bool write)
@@ -207,7 +168,7 @@ void mali_gralloc_ion_free(private_handle_t * const hnd)
 	}
 }
 
-static void mali_gralloc_ion_free_internal(buffer_handle_t * const pHandle,
+void mali_gralloc_ion_free_internal(buffer_handle_t * const pHandle,
                                            const uint32_t num_hnds)
 {
 	for (uint32_t i = 0; i < num_hnds; i++)
@@ -223,11 +184,6 @@ static void mali_gralloc_ion_free_internal(buffer_handle_t * const pHandle,
 int mali_gralloc_ion_allocate_attr(private_handle_t *hnd)
 {
 	ATRACE_CALL();
-	ion_device *dev = ion_device::get();
-	if (!dev)
-	{
-		return -1;
-	}
 
 	int idx = hnd->get_share_attr_fd_index();
 	assert(idx >= 0);
@@ -239,7 +195,7 @@ int mali_gralloc_ion_allocate_attr(private_handle_t *hnd)
 	}
 	uint64_t usage = GRALLOC_USAGE_SW_READ_OFTEN | GRALLOC_USAGE_SW_WRITE_OFTEN;
 
-	hnd->fds[idx] = dev->alloc_from_dmabuf_heap(usage, hnd->attr_size);
+	hnd->fds[idx] = alloc_from_dmabuf_heap(usage, hnd->attr_size);
 	if (hnd->fds[idx] < 0)
 	{
 		MALI_GRALLOC_LOGE("ion_alloc failed");
@@ -308,19 +264,13 @@ static int allocate_to_container(buffer_descriptor_t *bufDescriptor, int fd_arr[
 	int err = 0;
 	int64_t usage = bufDescriptor->consumer_usage | bufDescriptor->producer_usage;
 
-	ion_device *dev = ion_device::get();
-	if (!dev)
-	{
-		return -1;
-	}
-
 	memset(hfr_fds, 0xff, sizeof(hfr_fds));
 
 	for (int layer = 0; layer < layer_count; layer++)
 	{
 		for (int fidx = 0; fidx < bufDescriptor->fd_count; fidx++)
 		{
-			hfr_fds[fidx][layer] =dev->alloc_from_dmabuf_heap(usage,
+			hfr_fds[fidx][layer] = alloc_from_dmabuf_heap(usage,
 					bufDescriptor->alloc_sizes[fidx]);
 
 			if (hfr_fds[fidx][layer] < 0)
@@ -383,12 +333,6 @@ int mali_gralloc_ion_allocate(const gralloc_buffer_descriptor_t *descriptors,
 	uint32_t i, max_buffer_index = 0;
 	int fds[5] = {-1, -1, -1, -1, -1};
 
-	ion_device *dev = ion_device::get();
-	if (!dev)
-	{
-		return -1;
-	}
-
 	for (i = 0; i < numDescriptors; i++)
 	{
 		buffer_descriptor_t *bufDescriptor = (buffer_descriptor_t *)(descriptors[i]);
@@ -409,7 +353,7 @@ int mali_gralloc_ion_allocate(const gralloc_buffer_descriptor_t *descriptors,
 		{
 			for (int fidx = 0; fidx < bufDescriptor->fd_count; fidx++)
 			{
-				fds[fidx] = dev->alloc_from_dmabuf_heap(usage, bufDescriptor->alloc_sizes[fidx]);
+				fds[fidx] = alloc_from_dmabuf_heap(usage, bufDescriptor->alloc_sizes[fidx]);
 
 				if (fds[fidx] < 0)
 				{

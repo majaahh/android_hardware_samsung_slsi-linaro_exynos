@@ -46,7 +46,6 @@ cc_defaults {
         "liblog",
         "libcutils",
         "libdmabufheap",
-        "libion_exynos",
         "libsync",
         "libutils",
         "libnativewindow",

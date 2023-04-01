@@ -95,7 +95,6 @@ arm_gralloc_allocator_cc_defaults {
         "liblog",
         "libcutils",
         "libdmabufheap",
-        "libion_exynos",
         "libsync",
         "libutils",
         "libnativewindow",

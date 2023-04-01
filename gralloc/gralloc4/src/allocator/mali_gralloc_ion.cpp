@@ -52,6 +52,7 @@
 #include "mali_gralloc_ion.h"
 
 static const char kDmabufSensorDirectHeapName[] = "sensor_direct_heap";
+static const char kDmabufVscalerSecureHeapName[] = "vscaler-secure";
 
 struct ion_device
 {
@@ -71,37 +72,20 @@ struct ion_device
 	}
 
 	/*
-	 *  Identifies a heap and retrieves file descriptor from ION for allocation
+	 *  Identifies a heap and allocates from that heap
 	 *
 	 * @param usage     [in]    Producer and consumer combined usage.
 	 * @param size      [in]    Requested buffer size (in bytes).
-	 * @param heap_type [in]    Requested heap type.
 	 * @param flags     [in]    ION allocation attributes defined by ION_FLAG_*.
 	 *
 	 * @return File handle which can be used for allocation, on success
 	 *         -1, otherwise.
 	 */
-	int alloc_from_ion_heap(uint64_t usage, size_t size, unsigned int flags);
+	int alloc_from_dmabuf_heap(uint64_t usage, size_t size, unsigned int flags);
 
 private:
 	std::unique_ptr<BufferAllocator> buffer_allocator;
 
-	/*
-	 *  Allocates in the DMA-BUF heap with name @heap_name. If allocation fails from
-	 *  the DMA-BUF heap or if it does not exist, falls back to an ION heap of the
-	 *  same name.
-	 *
-	 * @param heap_name [in]    DMA-BUF heap name for allocation
-	 * @param size      [in]    Requested buffer size (in bytes).
-	 * @param flags     [in]    ION allocation attributes defined by ION_FLAG_* to
-	 *                          be used for ION allocations. Will not be used with
-	 *                          DMA-BUF heaps since the framework does not support
-	 *                          allocation flags.
-	 *
-	 * @return fd of the allocated buffer on success, -1 otherwise;
-	 */
-
-	int alloc_from_dmabuf_heap(const std::string& heap_name, size_t size, unsigned int flags);
 };
 
 static void set_ion_flags(uint64_t usage, unsigned int *ion_flags)
@@ -191,52 +175,53 @@ static unsigned int select_heap_mask(uint64_t usage)
  *         @heap_mask.
  *
  */
-static std::string select_dmabuf_heap(unsigned int heap_mask)
+static std::string select_dmabuf_heap(unsigned int heap_mask, unsigned int ion_flags)
 {
-	if (heap_mask == EXYNOS_ION_HEAP_SENSOR_DIRECT_MASK)
+	switch (heap_mask)
 	{
-		return kDmabufSensorDirectHeapName;
+		case EXYNOS_ION_HEAP_SENSOR_DIRECT_MASK:
+			return kDmabufSensorDirectHeapName;
+		case EXYNOS_ION_HEAP_VIDEO_SCALER_MASK:
+			return kDmabufVscalerSecureHeapName;
+		case EXYNOS_ION_HEAP_VIDEO_FRAME_MASK:
+			return "vframe-secure";
+		case EXYNOS_ION_HEAP_VIDEO_STREAM_MASK:
+			return "system-secure-vstream-secure";
+		case EXYNOS_ION_HEAP_CAMERA_MASK:
+			if (ion_flags & ION_FLAG_PROTECTED)
+			{
+				return "camera-secure";
+			}
+			return (ion_flags & ION_FLAG_CACHED) ? "camera" : "camera-uncached";
+		case EXYNOS_ION_HEAP_SECURE_CAMERA_MASK:
+			return "secure_camera-secure";
+		case EXYNOS_ION_HEAP_SYSTEM_MASK:
+			return (ion_flags & ION_FLAG_CACHED) ? kDmabufSystemHeapName : kDmabufSystemUncachedHeapName;
+		default:
+			return {};
 	}
-	return {};
 }
 
-int ion_device::alloc_from_dmabuf_heap(const std::string& heap_name, size_t size,
-				       unsigned int flags)
+int ion_device::alloc_from_dmabuf_heap(uint64_t usage, size_t size, unsigned int flags)
 {
-	ATRACE_NAME(("alloc_from_dmabuf_heap " +  heap_name).c_str());
-	if (!buffer_allocator)
+	ATRACE_CALL();
+	if (size == 0 || !buffer_allocator)
 	{
 		return -1;
 	}
 
+	const auto heap_name = select_dmabuf_heap(select_heap_mask(usage), flags);
+	if (heap_name.empty())
+	{
+		MALI_GRALLOC_LOGW("No heap found for usage: 0x%" PRIx64, usage);
+		return -EINVAL;
+	}
+
+	ATRACE_NAME(("alloc_from_dmabuf_heap " + heap_name).c_str());
 	int shared_fd = buffer_allocator->Alloc(heap_name, size, flags);
 	if (shared_fd < 0)
 	{
 		ALOGE("Allocation failed for heap %s error: %d\n", heap_name.c_str(), shared_fd);
-	}
-
-	return shared_fd;
-}
-
-int ion_device::alloc_from_ion_heap(uint64_t usage, size_t size, unsigned int flags)
-{
-	ATRACE_CALL();
-	if (size == 0)
-	{
-		return -1;
-	}
-
-	unsigned int heap_mask = select_heap_mask(usage);
-
-	int shared_fd;
-	auto dmabuf_heap_name = select_dmabuf_heap(heap_mask);
-	if (!dmabuf_heap_name.empty())
-	{
-		shared_fd = alloc_from_dmabuf_heap(dmabuf_heap_name, size, flags);
-	}
-	else
-	{
-		shared_fd = exynos_ion_alloc(0, size, heap_mask, flags);
 	}
 
 	return shared_fd;
@@ -348,7 +333,7 @@ int mali_gralloc_ion_allocate_attr(private_handle_t *hnd)
 
 	ion_flags = ION_FLAG_CACHED;
 
-	hnd->fds[idx] = dev->alloc_from_ion_heap(usage, hnd->attr_size, ion_flags);
+	hnd->fds[idx] = dev->alloc_from_dmabuf_heap(usage, hnd->attr_size, ion_flags);
 	if (hnd->fds[idx] < 0)
 	{
 		MALI_GRALLOC_LOGE("ion_alloc failed");
@@ -406,7 +391,7 @@ static int allocate_to_container(buffer_descriptor_t *bufDescriptor, uint32_t io
 	{
 		for (int fidx = 0; fidx < bufDescriptor->fd_count; fidx++)
 		{
-			hfr_fds[fidx][layer] =dev->alloc_from_ion_heap(usage,
+			hfr_fds[fidx][layer] =dev->alloc_from_dmabuf_heap(usage,
 					bufDescriptor->alloc_sizes[fidx], ion_flags);
 
 			if (hfr_fds[fidx][layer] < 0)
@@ -507,7 +492,7 @@ int mali_gralloc_ion_allocate(const gralloc_buffer_descriptor_t *descriptors,
 		{
 			for (int fidx = 0; fidx < bufDescriptor->fd_count; fidx++)
 			{
-				fds[fidx] = dev->alloc_from_ion_heap(usage, bufDescriptor->alloc_sizes[fidx], ion_flags);
+				fds[fidx] = dev->alloc_from_dmabuf_heap(usage, bufDescriptor->alloc_sizes[fidx], ion_flags);
 
 				if (fds[fidx] < 0)
 				{

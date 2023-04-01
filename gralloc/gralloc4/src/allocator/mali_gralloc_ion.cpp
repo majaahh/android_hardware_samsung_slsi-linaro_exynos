@@ -24,21 +24,19 @@
 #include <pthread.h>
 #include <stdlib.h>
 #include <limits.h>
+#include <fcntl.h>
 
 #include <log/log.h>
 #include <cutils/atomic.h>
 #include <utils/Trace.h>
 
-
 #include <linux/dma-buf.h>
 #include <vector>
+#include <string>
 #include <sys/ioctl.h>
 
 #include <hardware/hardware.h>
 #include <hardware/gralloc1.h>
-
-#include <hardware/exynos/ion.h>
-#include <hardware/exynos/dmabuf_container.h>
 
 #include <BufferAllocator/BufferAllocator.h>
 #include "mali_gralloc_buffer.h"
@@ -62,7 +60,8 @@ struct ion_device
 		if (!dev.buffer_allocator)
 		{
 			dev.buffer_allocator = std::make_unique<BufferAllocator>();
-			if (!dev.buffer_allocator) {
+			if (!dev.buffer_allocator)
+			{
 				ALOGE("Unable to create BufferAllocator object");
 				return nullptr;
 			}
@@ -71,138 +70,54 @@ struct ion_device
 		return &dev;
 	}
 
-	/*
-	 *  Identifies a heap and allocates from that heap
-	 *
-	 * @param usage     [in]    Producer and consumer combined usage.
-	 * @param size      [in]    Requested buffer size (in bytes).
-	 * @param flags     [in]    ION allocation attributes defined by ION_FLAG_*.
-	 *
-	 * @return File handle which can be used for allocation, on success
-	 *         -1, otherwise.
-	 */
-	int alloc_from_dmabuf_heap(uint64_t usage, size_t size, unsigned int flags);
+	int alloc_from_dmabuf_heap(uint64_t usage, size_t size);
 
 private:
 	std::unique_ptr<BufferAllocator> buffer_allocator;
-
 };
 
-static void set_ion_flags(uint64_t usage, unsigned int *ion_flags)
+static std::string select_dmabuf_heap(uint64_t usage)
 {
-	if (ion_flags == nullptr)
-		return;
+	const bool cached = (usage & GRALLOC_USAGE_SW_READ_MASK) == GRALLOC_USAGE_SW_READ_OFTEN;
+	const char *system_heap = cached ? kDmabufSystemHeapName : kDmabufSystemUncachedHeapName;
 
-	if ((usage & GRALLOC_USAGE_SW_READ_MASK) == GRALLOC_USAGE_SW_READ_OFTEN)
-	{
-		*ion_flags |= ION_FLAG_CACHED;
-	}
-
-	/* TODO: does not seem to be used anymore. But check again to make sure */
-#ifdef GRALLOC_PROTECTED_ION_FLAG_FOR_CAMERA_RESERVED
-	if (usage & GRALLOC_USAGE_CAMERA_RESERVED)
-	{
-		*ion_flags |= ION_FLAG_PROTECTED;
-	}
-#endif
-	// DRM or Secure Camera
-	if (usage & (GRALLOC_USAGE_PROTECTED | GRALLOC_USAGE_SECURE_CAMERA_RESERVED))
-	{
-		/* W/A to Android R Camera vts_r5. (W/A requested by Visual S/W group MCD) */
-		if(!(usage & GRALLOC_USAGE_CAMERA_RESERVED))
-		{
-			*ion_flags |= ION_FLAG_PROTECTED;
-		}
-	}
-}
-
-static unsigned int select_heap_mask(uint64_t usage)
-{
-	unsigned int heap_mask;
 	if (usage & GRALLOC_USAGE_PROTECTED)
 	{
-		if (usage & GRALLOC_USAGE_PRIVATE_NONSECURE)
+		if (usage & GRALLOC_USAGE_CAMERA_RESERVED)
 		{
-			heap_mask = EXYNOS_ION_HEAP_SYSTEM_MASK;
+			return system_heap;
 		}
-		else if (usage & GRALLOC_USAGE_CAMERA_RESERVED)
+		if (usage & GRALLOC_USAGE_SECURE_CAMERA_RESERVED)
 		{
-			/* W/A to Android R Camera vts_r5. (W/A requested by Visual S/W group MCD) */
-			heap_mask = EXYNOS_ION_HEAP_SYSTEM_MASK;
-		}
-		else if (usage & GRALLOC_USAGE_SECURE_CAMERA_RESERVED)
-		{
-			heap_mask = EXYNOS_ION_HEAP_SECURE_CAMERA_MASK;
-		}
-		else if (usage & GRALLOC_USAGE_VIDEO_EXT)
-		{
-			heap_mask = EXYNOS_ION_HEAP_VIDEO_STREAM_MASK;
-		}
-		else if ((usage & GRALLOC_USAGE_HW_COMPOSER) &&
-			!(usage & GRALLOC_USAGE_HW_TEXTURE) &&
-			!(usage & GRALLOC_USAGE_HW_RENDER))
-		{
-			heap_mask = EXYNOS_ION_HEAP_VIDEO_SCALER_MASK;
-		}
-		else
-		{
-			heap_mask = EXYNOS_ION_HEAP_VIDEO_FRAME_MASK;
-		}
-	}
-	else if (usage & GRALLOC_USAGE_CAMERA_RESERVED)
-	{
-		heap_mask = EXYNOS_ION_HEAP_CAMERA_MASK;
-	}
-	else if (usage & GRALLOC_USAGE_SECURE_CAMERA_RESERVED)
-	{
-		heap_mask = EXYNOS_ION_HEAP_SECURE_CAMERA_MASK;
-	}
-	else
-	{
-		heap_mask = EXYNOS_ION_HEAP_SYSTEM_MASK;
-	}
-
-	return heap_mask;
-}
-
-/*
- * Selects a DMA-BUF heap name.
- *
- * @param heap_mask     [in]    heap_mask for which the equivalent DMA-BUF heap
- *                              name must be found.
- *
- * @return the name of the DMA-BUF heap equivalent to the ION heap of mask
- *         @heap_mask.
- *
- */
-static std::string select_dmabuf_heap(unsigned int heap_mask, unsigned int ion_flags)
-{
-	switch (heap_mask)
-	{
-		case EXYNOS_ION_HEAP_SENSOR_DIRECT_MASK:
-			return kDmabufSensorDirectHeapName;
-		case EXYNOS_ION_HEAP_VIDEO_SCALER_MASK:
-			return kDmabufVscalerSecureHeapName;
-		case EXYNOS_ION_HEAP_VIDEO_FRAME_MASK:
-			return "vframe-secure";
-		case EXYNOS_ION_HEAP_VIDEO_STREAM_MASK:
-			return "system-secure-vstream-secure";
-		case EXYNOS_ION_HEAP_CAMERA_MASK:
-			if (ion_flags & ION_FLAG_PROTECTED)
-			{
-				return "camera-secure";
-			}
-			return (ion_flags & ION_FLAG_CACHED) ? "camera" : "camera-uncached";
-		case EXYNOS_ION_HEAP_SECURE_CAMERA_MASK:
 			return "secure_camera-secure";
-		case EXYNOS_ION_HEAP_SYSTEM_MASK:
-			return (ion_flags & ION_FLAG_CACHED) ? kDmabufSystemHeapName : kDmabufSystemUncachedHeapName;
-		default:
-			return {};
+		}
+		if (usage & GRALLOC_USAGE_VIDEO_EXT)
+		{
+			return "system-secure-vstream-secure";
+		}
+		if ((usage & GRALLOC_USAGE_HW_COMPOSER) &&
+		    !(usage & (GRALLOC_USAGE_HW_TEXTURE | GRALLOC_USAGE_HW_RENDER)))
+		{
+			return kDmabufVscalerSecureHeapName;
+		}
+		return "vframe-secure";
 	}
+	if (usage & GRALLOC_USAGE_CAMERA_RESERVED)
+	{
+		return cached ? "camera" : "camera-uncached";
+	}
+	if (usage & GRALLOC_USAGE_SECURE_CAMERA_RESERVED)
+	{
+		return "secure_camera-secure";
+	}
+	if (usage & GRALLOC_USAGE_SENSOR_DIRECT_DATA)
+	{
+		return kDmabufSensorDirectHeapName;
+	}
+	return system_heap;
 }
 
-int ion_device::alloc_from_dmabuf_heap(uint64_t usage, size_t size, unsigned int flags)
+int ion_device::alloc_from_dmabuf_heap(uint64_t usage, size_t size)
 {
 	ATRACE_CALL();
 	if (size == 0 || !buffer_allocator)
@@ -210,15 +125,9 @@ int ion_device::alloc_from_dmabuf_heap(uint64_t usage, size_t size, unsigned int
 		return -1;
 	}
 
-	const auto heap_name = select_dmabuf_heap(select_heap_mask(usage), flags);
-	if (heap_name.empty())
-	{
-		MALI_GRALLOC_LOGW("No heap found for usage: 0x%" PRIx64, usage);
-		return -EINVAL;
-	}
-
+	const auto heap_name = select_dmabuf_heap(usage);
 	ATRACE_NAME(("alloc_from_dmabuf_heap " + heap_name).c_str());
-	int shared_fd = buffer_allocator->Alloc(heap_name, size, flags);
+	int shared_fd = buffer_allocator->Alloc(heap_name, size, 0);
 	if (shared_fd < 0)
 	{
 		ALOGE("Allocation failed for heap %s error: %d\n", heap_name.c_str(), shared_fd);
@@ -328,12 +237,9 @@ int mali_gralloc_ion_allocate_attr(private_handle_t *hnd)
 		MALI_GRALLOC_LOGE("failed to get share_attr_fd_index from private_handle");
 		return -1;
 	}
-	int ion_flags = 0;
 	uint64_t usage = GRALLOC_USAGE_SW_READ_OFTEN | GRALLOC_USAGE_SW_WRITE_OFTEN;
 
-	ion_flags = ION_FLAG_CACHED;
-
-	hnd->fds[idx] = dev->alloc_from_dmabuf_heap(usage, hnd->attr_size, ion_flags);
+	hnd->fds[idx] = dev->alloc_from_dmabuf_heap(usage, hnd->attr_size);
 	if (hnd->fds[idx] < 0)
 	{
 		MALI_GRALLOC_LOGE("ion_alloc failed");
@@ -356,7 +262,31 @@ static inline int createBufferContainer(int *fd, int size, int *containerFd)
 		return -EINVAL;
 	}
 
-	bufferContainerFd = dma_buf_merge(fd[0], fd + 1, size - 1);
+	struct dma_buf_merge
+	{
+		int *dma_bufs;
+		int32_t count;
+		int32_t dmabuf_container;
+		uint32_t reserved[2];
+	} data = {};
+
+	int container_device = open("/dev/dmabuf_container", O_RDONLY | O_CLOEXEC);
+	int ret;
+	if (container_device >= 0)
+	{
+		data.dma_bufs = fd;
+		data.count = size;
+		ret = ioctl(container_device, _IOWR('D', 1, struct dma_buf_merge), &data);
+		close(container_device);
+	}
+	else
+	{
+		data.dma_bufs = fd + 1;
+		data.count = size - 1;
+		ret = ioctl(fd[0], _IOWR('b', 13, struct dma_buf_merge), &data);
+	}
+
+	bufferContainerFd = ret < 0 ? ret : data.dmabuf_container;
 	if (bufferContainerFd < 0)
 	{
 		MALI_GRALLOC_LOGE("fail to create Buffer Container. containerFd(%d), size(%d)",
@@ -369,8 +299,7 @@ static inline int createBufferContainer(int *fd, int size, int *containerFd)
 	return 0;
 }
 
-static int allocate_to_container(buffer_descriptor_t *bufDescriptor, uint32_t ion_flags,
-		int fd_arr[])
+static int allocate_to_container(buffer_descriptor_t *bufDescriptor, int fd_arr[])
 {
 	/* TODO: make batch size as BoardConfig option */
 #define GRALLOC_HFR_BATCH_SIZE 8
@@ -392,7 +321,7 @@ static int allocate_to_container(buffer_descriptor_t *bufDescriptor, uint32_t io
 		for (int fidx = 0; fidx < bufDescriptor->fd_count; fidx++)
 		{
 			hfr_fds[fidx][layer] =dev->alloc_from_dmabuf_heap(usage,
-					bufDescriptor->alloc_sizes[fidx], ion_flags);
+					bufDescriptor->alloc_sizes[fidx]);
 
 			if (hfr_fds[fidx][layer] < 0)
 			{
@@ -452,7 +381,6 @@ int mali_gralloc_ion_allocate(const gralloc_buffer_descriptor_t *descriptors,
 	unsigned char *cpu_ptr = NULL;
 	uint64_t usage;
 	uint32_t i, max_buffer_index = 0;
-	unsigned int ion_flags = 0;
 	int fds[5] = {-1, -1, -1, -1, -1};
 
 	ion_device *dev = ion_device::get();
@@ -466,22 +394,11 @@ int mali_gralloc_ion_allocate(const gralloc_buffer_descriptor_t *descriptors,
 		buffer_descriptor_t *bufDescriptor = (buffer_descriptor_t *)(descriptors[i]);
 		usage = bufDescriptor->consumer_usage | bufDescriptor->producer_usage;
 
-		ion_flags = 0;
-		set_ion_flags(usage, &ion_flags);
-
-		/* AFBC header must be initialized, but if the buffer is not zeroed, it can't
-		 * be mapped for initialization. So force disable NOZEROED flag if AFBC
-		 */
-		if (bufDescriptor->alloc_format & MALI_GRALLOC_INTFMT_AFBCENABLE_MASK)
-		{
-			ion_flags &= ~ION_FLAG_NOZEROED;
-		}
-
 		if (usage & GRALLOC_USAGE_HFR_MODE)
 		{
 			priv_heap_flag |= private_handle_t::PRIV_FLAGS_USES_HFR_MODE;
 
-			if (0 > allocate_to_container(bufDescriptor, ion_flags, fds))
+			if (0 > allocate_to_container(bufDescriptor, fds))
 			{
 				MALI_GRALLOC_LOGE("allocate to container failed");
 				mali_gralloc_ion_free_internal(pHandle, numDescriptors);
@@ -492,7 +409,7 @@ int mali_gralloc_ion_allocate(const gralloc_buffer_descriptor_t *descriptors,
 		{
 			for (int fidx = 0; fidx < bufDescriptor->fd_count; fidx++)
 			{
-				fds[fidx] = dev->alloc_from_dmabuf_heap(usage, bufDescriptor->alloc_sizes[fidx], ion_flags);
+				fds[fidx] = dev->alloc_from_dmabuf_heap(usage, bufDescriptor->alloc_sizes[fidx]);
 
 				if (fds[fidx] < 0)
 				{

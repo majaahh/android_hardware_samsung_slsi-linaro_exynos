@@ -49,6 +49,8 @@
 
 #include "mali_gralloc_ion.h"
 
+#include <cassert>
+
 static const char kDmabufSensorDirectHeapName[] = "sensor_direct_heap";
 static const char kDmabufVscalerSecureHeapName[] = "vscaler-secure";
 
@@ -177,6 +179,8 @@ void mali_gralloc_ion_free_internal(buffer_handle_t * const pHandle,
 		{
 			private_handle_t * const hnd = (private_handle_t * const)pHandle[i];
 			mali_gralloc_ion_free(hnd);
+			delete hnd;
+			pHandle[i] = nullptr;
 		}
 	}
 }
@@ -276,6 +280,7 @@ static int allocate_to_container(buffer_descriptor_t *bufDescriptor, int fd_arr[
 			if (hfr_fds[fidx][layer] < 0)
 			{
 				MALI_GRALLOC_LOGE("ion_alloc failed");
+				err = -1;
 				goto finish;
 			}
 		}
@@ -327,75 +332,64 @@ int mali_gralloc_ion_allocate(const gralloc_buffer_descriptor_t *descriptors,
 	ATRACE_CALL();
 	GRALLOC_UNUSED(shared_backend);
 
-	static int support_protected = 1;
-	unsigned int priv_heap_flag = 0;
 	uint64_t usage;
-	uint32_t i, max_buffer_index = 0;
-	int fds[5] = {-1, -1, -1, -1, -1};
+	uint32_t i;
 
 	for (i = 0; i < numDescriptors; i++)
 	{
-		buffer_descriptor_t *bufDescriptor = (buffer_descriptor_t *)(descriptors[i]);
+		buffer_descriptor_t *bufDescriptor = reinterpret_cast<buffer_descriptor_t *>(descriptors[i]);
+		assert(bufDescriptor);
+		assert(bufDescriptor->fd_count <= MAX_PLANES);
+
 		usage = bufDescriptor->consumer_usage | bufDescriptor->producer_usage;
+		const bool is_hfr = usage & GRALLOC_USAGE_HFR_MODE;
+		const unsigned int priv_heap_flag = is_hfr ? private_handle_t::PRIV_FLAGS_USES_HFR_MODE : 0;
 
-		if (usage & GRALLOC_USAGE_HFR_MODE)
-		{
-			priv_heap_flag |= private_handle_t::PRIV_FLAGS_USES_HFR_MODE;
-
-			if (0 > allocate_to_container(bufDescriptor, fds))
-			{
-				MALI_GRALLOC_LOGE("allocate to container failed");
-				mali_gralloc_ion_free_internal(pHandle, numDescriptors);
-				return -1;
-			}
-		}
-		else
-		{
-			for (int fidx = 0; fidx < bufDescriptor->fd_count; fidx++)
-			{
-				fds[fidx] = alloc_from_dmabuf_heap(usage, bufDescriptor->alloc_sizes[fidx]);
-
-				if (fds[fidx] < 0)
-				{
-					MALI_GRALLOC_LOGE("ion_alloc failed");
-
-					for (int cidx = 0; cidx < fidx; cidx++)
-					{
-						close(fds[cidx]);
-					}
-
-					/* need to free already allocated memory. not just this one */
-					mali_gralloc_ion_free_internal(pHandle, numDescriptors);
-
-					return -1;
-				}
-			}
-		}
-
-		private_handle_t *hnd = new private_handle_t(
+		auto hnd = new private_handle_t(
 		    priv_heap_flag,
 		    bufDescriptor->alloc_sizes,
 		    bufDescriptor->consumer_usage, bufDescriptor->producer_usage,
-		    fds, bufDescriptor->fd_count,
+		    nullptr, bufDescriptor->fd_count,
 		    bufDescriptor->hal_format, bufDescriptor->alloc_format,
 		    bufDescriptor->width, bufDescriptor->height, bufDescriptor->pixel_stride,
 		    bufDescriptor->layer_count, bufDescriptor->plane_info);
 
-		if (NULL == hnd)
+		if (nullptr == hnd)
 		{
 			MALI_GRALLOC_LOGE("Private handle could not be created for descriptor:%d in non-shared usecase", i);
-
-			/* Close the obtained shared file descriptor for the current handle */
-			for (int j = 0; j < bufDescriptor->fd_count; j++)
-			{
-				close(fds[j]);
-			}
-
-			mali_gralloc_ion_free_internal(pHandle, numDescriptors);
+			mali_gralloc_ion_free_internal(pHandle, i);
 			return -1;
 		}
 
+		/* Count only successfully allocated fds for partial-allocation cleanup. */
+		hnd->set_numfds(0);
 		pHandle[i] = hnd;
+
+		if (is_hfr)
+		{
+			if (allocate_to_container(bufDescriptor, hnd->fds) < 0)
+			{
+				MALI_GRALLOC_LOGE("allocate to container failed");
+				mali_gralloc_ion_free_internal(pHandle, i + 1);
+				return -1;
+			}
+			hnd->incr_numfds(bufDescriptor->fd_count);
+		}
+		else
+		{
+			for (uint32_t fidx = 0; fidx < bufDescriptor->fd_count; fidx++)
+			{
+				int& fd = hnd->fds[fidx];
+				fd = alloc_from_dmabuf_heap(usage, bufDescriptor->alloc_sizes[fidx]);
+				if (fd < 0)
+				{
+					MALI_GRALLOC_LOGE("ion_alloc failed for fds[%u] = %d", fidx, fd);
+					mali_gralloc_ion_free_internal(pHandle, i + 1);
+					return -1;
+				}
+				hnd->incr_numfds(1);
+			}
+		}
 	}
 
 #if defined(GRALLOC_INIT_AFBC) && (GRALLOC_INIT_AFBC == 1)
@@ -403,8 +397,8 @@ int mali_gralloc_ion_allocate(const gralloc_buffer_descriptor_t *descriptors,
 	unsigned char *cpu_ptr = NULL;
 	for (i = 0; i < numDescriptors; i++)
 	{
-		buffer_descriptor_t *bufDescriptor = (buffer_descriptor_t *)(descriptors[i]);
-		private_handle_t *hnd = (private_handle_t *)(pHandle[i]);
+		buffer_descriptor_t *bufDescriptor = reinterpret_cast<buffer_descriptor_t *>(descriptors[i]);
+		const private_handle_t *hnd = static_cast<const private_handle_t *>(pHandle[i]);
 
 		usage = bufDescriptor->consumer_usage | bufDescriptor->producer_usage;
 
@@ -431,6 +425,7 @@ int mali_gralloc_ion_allocate(const gralloc_buffer_descriptor_t *descriptors,
 				ATRACE_NAME("data init");
 				/* For separated plane YUV, there is a header to initialise per plane. */
 				const plane_info_t *plane_info = bufDescriptor->plane_info;
+				assert(plane_info);
 				const bool is_multi_plane = hnd->is_multi_plane();
 				for (int i = 0; i < MAX_PLANES && (i == 0 || plane_info[i].byte_stride != 0); i++)
 				{

@@ -33,6 +33,7 @@
 #include <linux/dma-buf.h>
 #include <vector>
 #include <string>
+#include <sstream>
 #include <sys/ioctl.h>
 
 #include <hardware/hardware.h>
@@ -109,7 +110,9 @@ int alloc_from_dmabuf_heap(uint64_t usage, size_t size)
 	}
 
 	const auto heap_name = select_dmabuf_heap(usage);
-	ATRACE_NAME(("alloc_from_dmabuf_heap " + heap_name).c_str());
+	std::stringstream tag;
+	tag << "heap: " << heap_name << ", bytes: " << size;
+	ATRACE_NAME(tag.str().c_str());
 	int shared_fd = get_allocator().Alloc(heap_name, size, 0);
 	if (shared_fd < 0)
 	{

@@ -55,6 +55,7 @@ soong_config_bool_variable {
 
 arm_gralloc_cc_defaults {
     name: "arm_gralloc_defaults",
+    defaults: ["android.hardware.graphics.common-ndk_shared"],
     owner: "arm",
     vendor: true,
     proprietary: true,
@@ -71,9 +72,6 @@ arm_gralloc_cc_defaults {
             cflags: ["-DPLATFORM_SDK_VERSION=%d"],
         },
     },
-    shared_libs: [
-        "android.hardware.graphics.common-V4-ndk",
-    ],
     header_libs: [
         "libgralloc4_headers_exynos",
     ],

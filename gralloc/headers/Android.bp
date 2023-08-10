@@ -1,0 +1,19 @@
+package {
+    default_applicable_licenses: ["Android-Apache-2.0"],
+}
+
+cc_library_headers {
+    name: "arm-gralloc-headers",
+    // TODO(270442578): Change to vendor: true
+    vendor_available: true,
+    host_supported: true,
+    export_include_dirs: [
+        ".",
+    ],
+    shared_libs: [
+        "android.hardware.graphics.common-V4-ndk",
+    ],
+    visibility: [
+        "//visibility:public",
+    ],
+}

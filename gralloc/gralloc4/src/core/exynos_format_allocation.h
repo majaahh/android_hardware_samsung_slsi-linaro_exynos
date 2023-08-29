@@ -63,7 +63,7 @@
  */
 
 /* Sets up 8-bit SBWC semi planar and returns the plane count */
-int setup_sbwc_420_sp(int w, int h, int fd_count, plane_info_t *plane)
+int setup_sbwc_420_sp(uint64_t w, uint64_t h, int fd_count, plane_info_t *plane)
 {
 	plane[0].size = SBWC_8B_Y_SIZE(w, h) + SBWC_8B_Y_HEADER_SIZE(w, h);
 	plane[0].alloc_width = GRALLOC_ALIGN(w, 32);
@@ -90,7 +90,7 @@ int setup_sbwc_420_sp(int w, int h, int fd_count, plane_info_t *plane)
 }
 
 /* Sets up 10-bit SBWC semi planar and returns the plane count */
-int setup_sbwc_420_sp_10bit(int w, int h, int fd_count, plane_info_t *plane)
+int setup_sbwc_420_sp_10bit(uint64_t w, uint64_t h, int fd_count, plane_info_t *plane)
 {
 	plane[0].size = (SBWC_10B_Y_SIZE(w, h) + SBWC_10B_Y_HEADER_SIZE(w, h));
 	plane[0].alloc_width = GRALLOC_ALIGN(w, 32);
@@ -117,7 +117,7 @@ int setup_sbwc_420_sp_10bit(int w, int h, int fd_count, plane_info_t *plane)
 }
 
 /* Sets up 8-bit Lossy SBWC semi planar and returns the plane count */
-int setup_sbwc_420_sp_lossy(int width, int height, int rate, int fd_count, plane_info_t *plane)
+int setup_sbwc_420_sp_lossy(uint64_t width, uint64_t height, int rate, int fd_count, plane_info_t *plane)
 {
 	plane[0].size = SBWCL_8B_Y_SIZE(width, height, rate);
 	plane[0].alloc_width = GRALLOC_ALIGN(width, 32);
@@ -145,7 +145,7 @@ int setup_sbwc_420_sp_lossy(int width, int height, int rate, int fd_count, plane
 
 
 /* Sets up 10-bit Lossy SBWC semi planar and returns the plane count */
-int setup_sbwc_420_sp_10bit_lossy(int width, int height, int rate, int fd_count, plane_info_t *plane)
+int setup_sbwc_420_sp_10bit_lossy(uint64_t width, uint64_t height, int rate, int fd_count, plane_info_t *plane)
 {
 	plane[0].size = SBWCL_10B_Y_SIZE(width, height, rate);
 	plane[0].alloc_width = GRALLOC_ALIGN(width, 32);
@@ -171,7 +171,7 @@ int setup_sbwc_420_sp_10bit_lossy(int width, int height, int rate, int fd_count,
 	return 2;
 }
 
-int setup_420_sp(int width, int height, int fd_count, plane_info_t *plane, int padding = 0)
+int setup_420_sp(uint64_t width, uint64_t height, int fd_count, plane_info_t *plane, size_t padding = 0)
 {
 	/* TODO: make this into an assert instead ? */
 	height = GRALLOC_ALIGN(height, 2);
@@ -182,11 +182,11 @@ int setup_420_sp(int width, int height, int fd_count, plane_info_t *plane, int p
 	plane[0].byte_stride = width;
 	plane[0].fd_idx = 0;
 
-	int chroma_width = width;
+	uint64_t chroma_width = width;
 #if defined(EXYNOS_CHROMA_VSTRIDE_ALIGN)
-	int chroma_height = GRALLOC_ALIGN(height / 2, CHROMA_VALIGN);
+	uint64_t chroma_height = GRALLOC_ALIGN(height / 2, CHROMA_VALIGN);
 #else
-	int chroma_height = height / 2;
+	uint64_t chroma_height = height / 2;
 #endif
 
 	plane[1].size = PLANE_SIZE(chroma_width, chroma_height) + padding;
@@ -207,13 +207,13 @@ int setup_420_sp(int width, int height, int fd_count, plane_info_t *plane, int p
 	return 2;
 }
 
-int setup_420_sp_s10b(int width, int height, int fd_count, plane_info_t *plane)
+int setup_420_sp_s10b(uint64_t width, uint64_t height, int fd_count, plane_info_t *plane)
 {
 	/* TODO: make this into an assert instead ? */
 	/* TODO: assert height aligned to 16 ? */
 	height = GRALLOC_ALIGN(height, 2);
 
-	int mscl_ext = 256;
+	size_t mscl_ext = 256;
 
 	/* HAL_PIXEL_FORMAT_EXYNOS_YCbCr_420_SPN_S10B have special padding requirement */
 	if (fd_count == 1)
@@ -227,8 +227,8 @@ int setup_420_sp_s10b(int width, int height, int fd_count, plane_info_t *plane)
 	plane[0].byte_stride = width;
 	plane[0].fd_idx = 0;
 
-	int chroma_width = width;
-	int chroma_height = height / 2;
+	uint64_t chroma_width = width;
+	uint64_t chroma_height = height / 2;
 
 	plane[1].size = PLANE_SIZE(chroma_width, chroma_height)
 		+ S2B_PLANE_SIZE(chroma_width, chroma_height) + mscl_ext;
@@ -249,7 +249,7 @@ int setup_420_sp_s10b(int width, int height, int fd_count, plane_info_t *plane)
 	return 2;
 }
 
-int setup_p010_sp(int width, int height, int fd_count, plane_info_t *plane)
+int setup_p010_sp(uint64_t width, uint64_t height, int fd_count, plane_info_t *plane)
 {
 	/* TODO: make this into an assert instead ? */
 	height = GRALLOC_ALIGN(height, 2);
@@ -260,8 +260,8 @@ int setup_p010_sp(int width, int height, int fd_count, plane_info_t *plane)
 	plane[0].byte_stride = width * 2;
 	plane[0].fd_idx = 0;
 
-	int chroma_width = width;
-	int chroma_height = height / 2;
+	uint64_t chroma_width = width;
+	uint64_t chroma_height = height / 2;
 
 	plane[1].size = PLANE_SIZE(chroma_width * 2, chroma_height);
 	plane[1].alloc_width = chroma_width;
@@ -281,7 +281,7 @@ int setup_p010_sp(int width, int height, int fd_count, plane_info_t *plane)
 	return 2;
 }
 
-int setup_420_p(int width, int height, int fd_count, plane_info_t *plane)
+int setup_420_p(uint64_t width, uint64_t height, int fd_count, plane_info_t *plane)
 {
 	/* TODO: make this into an assert instead ? */
 	width = GRALLOC_ALIGN(width, 2);
@@ -293,11 +293,11 @@ int setup_420_p(int width, int height, int fd_count, plane_info_t *plane)
 	plane[0].byte_stride = width;
 	plane[0].fd_idx = 0;
 
-	int chroma_width = GRALLOC_ALIGN(width / 2, 16);
+	uint64_t chroma_width = GRALLOC_ALIGN(width / 2, 16);
 #if defined(EXYNOS_CHROMA_VSTRIDE_ALIGN)
-	int chroma_height = GRALLOC_ALIGN(height / 2, CHROMA_VALIGN);
+	uint64_t chroma_height = GRALLOC_ALIGN(height / 2, CHROMA_VALIGN);
 #else
-	int chroma_height = height / 2;
+	uint64_t chroma_height = height / 2;
 #endif
 
 	plane[1].size = PLANE_SIZE(chroma_width, chroma_height);
@@ -326,7 +326,7 @@ int setup_420_p(int width, int height, int fd_count, plane_info_t *plane)
 	return 3;
 }
 
-int setup_420_sp_tiled(int width, int height, int fd_count, plane_info_t *plane)
+int setup_420_sp_tiled(uint64_t width, uint64_t height, int fd_count, plane_info_t *plane)
 {
 	/* TODO: make this into an assert instead ? */
 	width = GRALLOC_ALIGN(width, 2);
@@ -338,8 +338,8 @@ int setup_420_sp_tiled(int width, int height, int fd_count, plane_info_t *plane)
 	plane[0].byte_stride = width * 16;
 	plane[0].fd_idx = 0;
 
-	int chroma_width = width;
-	int chroma_height = GRALLOC_ALIGN(height / 2, 32);
+	uint64_t chroma_width = width;
+	uint64_t chroma_height = GRALLOC_ALIGN(height / 2, 32);
 
 	plane[1].size = PLANE_SIZE(chroma_width, chroma_height);
 	plane[1].alloc_width = chroma_width;

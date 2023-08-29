@@ -141,11 +141,11 @@ static uint64_t getUniqueId()
 	return id | counter++;
 }
 
-static void afbc_buffer_align(const bool is_tiled, int *size)
+template<typename T>
+static void afbc_buffer_align(const bool is_tiled, T *size)
 {
-	const uint16_t AFBC_BODY_BUFFER_BYTE_ALIGNMENT = 1024;
-
-	int buffer_byte_alignment = AFBC_BODY_BUFFER_BYTE_ALIGNMENT;
+	constexpr T AFBC_BODY_BUFFER_BYTE_ALIGNMENT = 1024;
+	T buffer_byte_alignment = AFBC_BODY_BUFFER_BYTE_ALIGNMENT;
 
 	if (is_tiled)
 	{
@@ -303,13 +303,13 @@ bool get_alloc_type(const uint64_t format_ext,
  */
 void init_afbc(uint8_t *buf, const uint64_t alloc_format,
                const bool is_multi_plane,
-               const int w, const int h)
+               const uint64_t w, const uint64_t h)
 {
 	ATRACE_CALL();
 	const bool is_tiled = ((alloc_format & MALI_GRALLOC_INTFMT_AFBC_TILED_HEADERS)
 	                         == MALI_GRALLOC_INTFMT_AFBC_TILED_HEADERS);
 	const uint32_t n_headers = (w * h) / AFBC_PIXELS_PER_BLOCK;
-	int body_offset = n_headers * AFBC_HEADER_BUFFER_BYTES_PER_BLOCKENTRY;
+	uint32_t body_offset = n_headers * AFBC_HEADER_BUFFER_BYTES_PER_BLOCKENTRY;
 
 	afbc_buffer_align(is_tiled, &body_offset);
 
@@ -325,7 +325,7 @@ void init_afbc(uint8_t *buf, const uint64_t alloc_format,
 	if ((alloc_format & MALI_GRALLOC_INTFMT_AFBC_TILED_HEADERS))
 	{
 		/* Zero out body_offset for non-subsampled formats. */
-		memset(headers[0], 0, sizeof(uint32_t) * 4);
+		memset(headers[0], 0, sizeof(headers[0]));
 	}
 
 	/* Map base format to AFBC header layout */
@@ -354,29 +354,14 @@ void init_afbc(uint8_t *buf, const uint64_t alloc_format,
 	}
 }
 
-static int max(int a, int b)
-{
-	return a > b ? a : b;
-}
-
-static int max(int a, int b, int c)
-{
-	return c > max(a, b) ? c : max(a, b);
-}
-
-static int max(int a, int b, int c, int d)
-{
-	return d > max(a, b, c) ? d : max(a, b, c);
-}
-
 /*
  * Obtain plane allocation dimensions (in pixels).
  *
  * NOTE: pixel stride, where defined for format, is
  * incorporated into allocation dimensions.
  */
-static void get_pixel_w_h(uint32_t * const width,
-                          uint32_t * const height,
+static void get_pixel_w_h(uint64_t * const width,
+                          uint64_t * const height,
                           const format_info_t format,
                           const alloc_type_t alloc_type,
                           const uint8_t plane,
@@ -409,14 +394,14 @@ static void get_pixel_w_h(uint32_t * const width,
 	 * Pixel alignment (width),
 	 * where format stride is stated in pixels.
 	 */
-	int pixel_align_w = 1, pixel_align_h = 1;
+	uint32_t pixel_align_w = 1, pixel_align_h = 1;
 	if (has_cpu_usage && is_primary_plane)
 	{
 		pixel_align_w = format.align_w_cpu;
 	}
 	else if (alloc_type.is_afbc())
 	{
-#define HEADER_STRIDE_ALIGN_IN_SUPER_BLOCKS (0)
+		constexpr uint32_t HEADER_STRIDE_ALIGN_IN_SUPER_BLOCKS = 0;
 		uint32_t num_sb_align = 0;
 		if (alloc_type.is_padded && !format.is_yuv)
 		{
@@ -425,7 +410,7 @@ static void get_pixel_w_h(uint32_t * const width,
 			 */
 			num_sb_align = 4;
 		}
-		pixel_align_w = max(HEADER_STRIDE_ALIGN_IN_SUPER_BLOCKS, num_sb_align) * sb.width;
+		pixel_align_w = std::max(HEADER_STRIDE_ALIGN_IN_SUPER_BLOCKS, num_sb_align) * sb.width;
 
 		/*
 		 * Determine AFBC tile size when allocating tiled headers.
@@ -437,13 +422,13 @@ static void get_pixel_w_h(uint32_t * const width,
 			afbc_tile.height = format.bpp_afbc[plane] > 32 ? 4 * afbc_tile.height : 8 * afbc_tile.height;
 		}
 
-		MALI_GRALLOC_LOGV("Plane[%hhu]: [SUB-SAMPLE] w:%d, h:%d\n", plane, *width, *height);
+		MALI_GRALLOC_LOGV("Plane[%hhu]: [SUB-SAMPLE] w:%" PRIu64 ", h:%" PRIu64 "\n", plane, *width, *height);
 		MALI_GRALLOC_LOGV("Plane[%hhu]: [PIXEL_ALIGN] w:%d\n", plane, pixel_align_w);
 		MALI_GRALLOC_LOGV("Plane[%hhu]: [LINEAR_TILE] w:%" PRIu16 "\n", plane, format.tile_size);
-		MALI_GRALLOC_LOGV("Plane[%hhu]: [AFBC_TILE] w:%" PRIu16 ", h:%" PRIu16 "\n", plane, afbc_tile.width, afbc_tile.height);
+		MALI_GRALLOC_LOGV("Plane[%hhu]: [AFBC_TILE] w:%" PRIu64 ", h:%" PRIu64 "\n", plane, afbc_tile.width, afbc_tile.height);
 
-		pixel_align_w = max(pixel_align_w, afbc_tile.width);
-		pixel_align_h = max(pixel_align_h, afbc_tile.height);
+		pixel_align_w = std::max(static_cast<uint64_t>(pixel_align_w), afbc_tile.width);
+		pixel_align_h = std::max(static_cast<uint64_t>(pixel_align_h), afbc_tile.height);
 
 		if (AllocBaseType::AFBC_WIDEBLK == alloc_type.primary_type && !alloc_type.is_tiled)
 		{
@@ -455,18 +440,17 @@ static void get_pixel_w_h(uint32_t * const width,
 			 * Note that this branch will not be taken for multi-plane AFBC
 			 * since that requires tiled headers.
 			 */
-			pixel_align_h = max(pixel_align_h, 16);
+			pixel_align_h = std::max(pixel_align_h, 16u);
 		}
 	}
-	*width = GRALLOC_ALIGN(*width, max(1, pixel_align_w, format.tile_size));
-	*height = GRALLOC_ALIGN(*height, max(1, pixel_align_h, format.tile_size));
+	*width = GRALLOC_ALIGN(*width, std::max({1u, pixel_align_w, static_cast<uint32_t>(format.tile_size)}));
+	*height = GRALLOC_ALIGN(*height, std::max({1u, pixel_align_h, static_cast<uint32_t>(format.tile_size)}));
 }
 
-
-
-static uint32_t gcd(uint32_t a, uint32_t b)
+template<typename T>
+static T gcd(T a, T b)
 {
-	uint32_t r, t;
+	T r, t;
 
 	if (a == b)
 	{
@@ -489,14 +473,15 @@ static uint32_t gcd(uint32_t a, uint32_t b)
 	return a;
 }
 
-uint32_t lcm(uint32_t a, uint32_t b)
+template<typename T>
+T lcm(T a, T b)
 {
 	if (a != 0 && b != 0)
 	{
 		return (a * b) / gcd(a, b);
 	}
 
-	return max(a, b);
+	return std::max(a, b);
 }
 
 
@@ -510,9 +495,9 @@ uint32_t lcm(uint32_t a, uint32_t b)
  * constraints, the luma stride must be doubled.
  */
 static void update_yv12_stride(int8_t plane,
-                               uint32_t luma_stride,
+                               size_t luma_stride,
                                uint32_t stride_align,
-                               uint32_t * byte_stride)
+                               size_t * byte_stride)
 {
 	if (plane == 0)
 	{
@@ -619,13 +604,13 @@ static bool validate_descriptor(buffer_descriptor_t * const bufDescriptor) {
  * @param plane_info      [out]   Array of calculated information for each plane. Includes
  *                                offset, byte stride and allocation width and height.
  */
-static void calc_allocation_size(const int width,
-                                 const int height,
+static void calc_allocation_size(const uint64_t width,
+                                 const uint64_t height,
                                  const alloc_type_t alloc_type,
                                  const format_info_t format,
                                  uint64_t usage,
-                                 int * const pixel_stride,
-                                 uint64_t * const size,
+                                 size_t * const pixel_stride,
+                                 size_t * const size,
                                  plane_info_t plane_info[MAX_PLANES])
 {
 	const bool has_cpu_usage = usage & (GRALLOC_USAGE_SW_READ_MASK | GRALLOC_USAGE_SW_WRITE_MASK);
@@ -647,7 +632,7 @@ static void calc_allocation_size(const int width,
 		              alloc_type,
 		              plane,
 		              has_cpu_usage);
-		MALI_GRALLOC_LOGV("Aligned w=%d, h=%d (in pixels)",
+		MALI_GRALLOC_LOGV("Aligned w=%" PRIu64 ", h=%" PRIu64 " (in pixels)",
 		      plane_info[plane].alloc_width, plane_info[plane].alloc_height);
 
 		/*
@@ -672,7 +657,7 @@ static void calc_allocation_size(const int width,
 			 *
 			 * NOTE: Pixel stride is defined as multiple of 'align_w_cpu'.
 			 */
-			uint16_t hw_align = 0;
+			uint32_t hw_align = 0;
 			if (has_hw_usage)
 			{
 				hw_align = format.is_yuv ?
@@ -742,7 +727,7 @@ static void calc_allocation_size(const int width,
 			}
 #endif
 		}
-		MALI_GRALLOC_LOGV("Byte stride: %d", plane_info[plane].byte_stride);
+		MALI_GRALLOC_LOGV("Byte stride: %zu", plane_info[plane].byte_stride);
 
 		const uint32_t sb_num = (plane_info[plane].alloc_width * plane_info[plane].alloc_height)
 		                      / AFBC_PIXELS_PER_BLOCK;
@@ -750,11 +735,11 @@ static void calc_allocation_size(const int width,
 		/*
 		 * Calculate body size (per plane).
 		 */
-		int body_size = 0;
+		size_t body_size = 0;
 		if (alloc_type.is_afbc())
 		{
 			const rect_t sb = get_afbc_sb_size(alloc_type, plane);
-			const int sb_bytes = GRALLOC_ALIGN((format.bpp_afbc[plane] * sb.width * sb.height) / 8, 128);
+			const size_t sb_bytes = GRALLOC_ALIGN((format.bpp_afbc[plane] * sb.width * sb.height) / 8, 128);
 			body_size = sb_num * sb_bytes;
 
 			/* When AFBC planes are stored in separate buffers and this is not the last plane,
@@ -766,7 +751,7 @@ static void calc_allocation_size(const int width,
 
 			if (alloc_type.is_frontbuffer_safe)
 			{
-				int back_buffer_size = body_size;
+				size_t back_buffer_size = body_size;
 				afbc_buffer_align(alloc_type.is_tiled, &back_buffer_size);
 				body_size += back_buffer_size;
 			}
@@ -775,13 +760,13 @@ static void calc_allocation_size(const int width,
 		{
 			body_size = plane_info[plane].byte_stride * plane_info[plane].alloc_height;
 		}
-		MALI_GRALLOC_LOGV("Body size: %d", body_size);
+		MALI_GRALLOC_LOGV("Body size: %zu", body_size);
 
 
 		/*
 		 * Calculate header size (per plane).
 		 */
-		int header_size = 0;
+		size_t header_size = 0;
 		if (alloc_type.is_afbc())
 		{
 			/* As this is AFBC, calculate header size for this plane.
@@ -790,7 +775,7 @@ static void calc_allocation_size(const int width,
 			header_size = sb_num * AFBC_HEADER_BUFFER_BYTES_PER_BLOCKENTRY;
 			afbc_buffer_align(alloc_type.is_tiled, &header_size);
 		}
-		MALI_GRALLOC_LOGV("AFBC Header size: %d", header_size);
+		MALI_GRALLOC_LOGV("AFBC Header size: %zu", header_size);
 
 		/*
 		 * Set offset for separate chroma planes.
@@ -806,7 +791,7 @@ static void calc_allocation_size(const int width,
 		 */
 		*size += body_size + header_size;
 		plane_info[plane].size = (*size);
-		MALI_GRALLOC_LOGV("size=%" PRIu64, *size);
+		MALI_GRALLOC_LOGV("size=%zu", *size);
 	}
 }
 
@@ -870,8 +855,8 @@ static int prepare_descriptor_exynos_formats(
 	size_t sizes[3] = {0, 0, 0};
 
 	int fd_count = 1;
-	int w = bufDescriptor->width;
-	int h = bufDescriptor->height;
+	uint64_t w = bufDescriptor->width;
+	uint64_t h = bufDescriptor->height;
 	uint64_t usage = bufDescriptor->producer_usage | bufDescriptor->consumer_usage;
 	int plane_count = 2;
 	int format = MALI_GRALLOC_INTFMT_FMT_MASK & bufDescriptor->alloc_format;
@@ -1024,7 +1009,7 @@ static int prepare_descriptor_exynos_formats(
 
 	for (int fidx = 0; fidx < fd_count; fidx++)
 	{
-		uint64_t size = 0;
+		size_t size = 0;
 
 		for (int pidx = 0; pidx < plane_count; pidx++)
 		{
@@ -1060,8 +1045,8 @@ int mali_gralloc_derive_format_and_size(buffer_descriptor_t * const bufDescripto
 	alloc_type_t alloc_type{};
 	int err;
 
-	int alloc_width = bufDescriptor->width;
-	int alloc_height = bufDescriptor->height;
+	uint64_t alloc_width = bufDescriptor->width;
+	uint64_t alloc_height = bufDescriptor->height;
 	uint64_t usage = bufDescriptor->producer_usage | bufDescriptor->consumer_usage;
 
 	if (!validate_descriptor(bufDescriptor)) {

@@ -495,9 +495,9 @@ T lcm(T a, T b)
  * constraints, the luma stride must be doubled.
  */
 static void update_yv12_stride(int8_t plane,
-                               size_t luma_stride,
+                               uint64_t luma_stride,
                                uint32_t stride_align,
-                               size_t * byte_stride)
+                               uint64_t * byte_stride)
 {
 	if (plane == 0)
 	{
@@ -611,8 +611,8 @@ static void calc_allocation_size(const uint64_t width,
                                  const alloc_type_t alloc_type,
                                  const format_info_t format,
                                  uint64_t usage,
-                                 size_t * const pixel_stride,
-                                 size_t * const size,
+                                 uint64_t * const pixel_stride,
+                                 uint64_t * const size,
                                  plane_info_t plane_info[MAX_PLANES])
 {
 	const bool has_cpu_usage = usage & (GRALLOC_USAGE_SW_READ_MASK | GRALLOC_USAGE_SW_WRITE_MASK);
@@ -729,7 +729,7 @@ static void calc_allocation_size(const uint64_t width,
 			}
 #endif
 		}
-		MALI_GRALLOC_LOGV("Byte stride: %zu", plane_info[plane].byte_stride);
+		MALI_GRALLOC_LOGV("Byte stride: %" PRIu64, plane_info[plane].byte_stride);
 
 		const uint32_t sb_num = (plane_info[plane].alloc_width * plane_info[plane].alloc_height)
 		                      / AFBC_PIXELS_PER_BLOCK;
@@ -793,7 +793,7 @@ static void calc_allocation_size(const uint64_t width,
 		 */
 		*size += body_size + header_size;
 		plane_info[plane].size = (*size);
-		MALI_GRALLOC_LOGV("size=%zu", *size);
+		MALI_GRALLOC_LOGV("size=%" PRIu64, *size);
 	}
 }
 
@@ -1011,7 +1011,7 @@ static int prepare_descriptor_exynos_formats(
 
 	for (int fidx = 0; fidx < fd_count; fidx++)
 	{
-		size_t size = 0;
+		uint64_t size = 0;
 
 		for (int pidx = 0; pidx < plane_count; pidx++)
 		{

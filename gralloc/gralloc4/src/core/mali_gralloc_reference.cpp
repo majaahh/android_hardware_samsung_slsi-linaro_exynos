@@ -17,6 +17,7 @@
  */
 
 #include <hardware/gralloc1.h>
+#include <unordered_map>
 
 #include "mali_gralloc_buffer.h"
 #include "allocator/mali_gralloc_ion.h"
@@ -24,6 +25,7 @@
 #include "mali_gralloc_bufferallocation.h"
 
 static pthread_mutex_t s_map_lock = PTHREAD_MUTEX_INITIALIZER;
+static std::unordered_map<buffer_handle_t, uint64_t> s_locked_ref_counts;
 
 int mali_gralloc_reference_retain(buffer_handle_t handle)
 {
@@ -79,6 +81,7 @@ int mali_gralloc_reference_release(buffer_handle_t handle)
 
 		if (hnd->ref_count == 0)
 		{
+			s_locked_ref_counts.erase(handle);
 			mali_gralloc_ion_unmap(hnd);
 
 			/* TODO: Make this unmapping of shared meta fd into a function? */
@@ -95,6 +98,49 @@ int mali_gralloc_reference_release(buffer_handle_t handle)
 		     hnd->remote_pid, getpid());
 	}
 
+	pthread_mutex_unlock(&s_map_lock);
+	return 0;
+}
+
+int mali_gralloc_reference_lock_retain(buffer_handle_t handle)
+{
+	if (private_handle_t::validate(handle) < 0)
+	{
+		return -EINVAL;
+	}
+
+	const private_handle_t *hnd = (const private_handle_t *)handle;
+	pthread_mutex_lock(&s_map_lock);
+	if (hnd->remote_pid != getpid() || hnd->ref_count == 0)
+	{
+		pthread_mutex_unlock(&s_map_lock);
+		return -EINVAL;
+	}
+
+	s_locked_ref_counts[handle]++;
+	pthread_mutex_unlock(&s_map_lock);
+	return 0;
+}
+
+int mali_gralloc_reference_lock_release(buffer_handle_t handle)
+{
+	if (private_handle_t::validate(handle) < 0)
+	{
+		return -EINVAL;
+	}
+
+	pthread_mutex_lock(&s_map_lock);
+	auto it = s_locked_ref_counts.find(handle);
+	if (it == s_locked_ref_counts.end())
+	{
+		pthread_mutex_unlock(&s_map_lock);
+		return -EINVAL;
+	}
+
+	if (--it->second == 0)
+	{
+		s_locked_ref_counts.erase(it);
+	}
 	pthread_mutex_unlock(&s_map_lock);
 	return 0;
 }

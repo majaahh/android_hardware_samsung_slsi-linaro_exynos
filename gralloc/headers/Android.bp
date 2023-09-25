@@ -7,14 +7,11 @@ cc_library_headers {
     // TODO(270442578): Change to vendor: true
     vendor_available: true,
     host_supported: true,
+    defaults:[
+        "android.hardware.graphics.common-ndk_shared"
+    ],
     export_include_dirs: [
         ".",
-    ],
-    shared_libs: [
-        "android.hardware.graphics.common-V4-ndk",
-    ],
-    export_shared_lib_headers: [
-        "android.hardware.graphics.common-V4-ndk",
     ],
     apex_available: [
         "//apex_available:platform",

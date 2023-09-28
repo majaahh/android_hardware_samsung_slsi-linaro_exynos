@@ -13,6 +13,13 @@ cc_library_headers {
     shared_libs: [
         "android.hardware.graphics.common-V4-ndk",
     ],
+    export_shared_lib_headers: [
+        "android.hardware.graphics.common-V4-ndk",
+    ],
+    apex_available: [
+        "//apex_available:platform",
+        "//apex_available:anyapex",
+    ],
     visibility: [
         "//visibility:public",
     ],

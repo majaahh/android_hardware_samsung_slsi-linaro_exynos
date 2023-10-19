@@ -24,8 +24,10 @@ cc_library_headers {
     ],
     header_libs: [
         "libsystem_headers",
+        "arm-gralloc-headers",
     ],
     export_header_lib_headers: [
         "libsystem_headers",
+        "arm-gralloc-headers",
     ],
 }

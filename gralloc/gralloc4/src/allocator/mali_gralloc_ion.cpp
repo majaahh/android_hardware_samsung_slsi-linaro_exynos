@@ -101,7 +101,7 @@ std::string select_dmabuf_heap(uint64_t usage)
 	return system_heap;
 }
 
-int alloc_from_dmabuf_heap(uint64_t usage, size_t size)
+int alloc_from_dmabuf_heap(uint64_t usage, size_t size, bool use_placeholder = false)
 {
 	ATRACE_CALL();
 	if (size == 0)
@@ -109,7 +109,11 @@ int alloc_from_dmabuf_heap(uint64_t usage, size_t size)
 		return -1;
 	}
 
-	const auto heap_name = select_dmabuf_heap(usage);
+	const auto heap_name = use_placeholder ? kDmabufSystemHeapName : select_dmabuf_heap(usage);
+	if (use_placeholder)
+	{
+		size = 1;
+	}
 	std::stringstream tag;
 	tag << "heap: " << heap_name << ", bytes: " << size;
 	ATRACE_NAME(tag.str().c_str());
@@ -330,7 +334,7 @@ finish:
  */
 int mali_gralloc_ion_allocate(const gralloc_buffer_descriptor_t *descriptors,
                               uint32_t numDescriptors, buffer_handle_t *pHandle,
-                              bool *shared_backend)
+                              bool *shared_backend, bool use_placeholder)
 {
 	ATRACE_CALL();
 	GRALLOC_UNUSED(shared_backend);
@@ -345,7 +349,7 @@ int mali_gralloc_ion_allocate(const gralloc_buffer_descriptor_t *descriptors,
 		assert(bufDescriptor->fd_count <= MAX_PLANES);
 
 		usage = bufDescriptor->consumer_usage | bufDescriptor->producer_usage;
-		const bool is_hfr = usage & GRALLOC_USAGE_HFR_MODE;
+		const bool is_hfr = !use_placeholder && (usage & GRALLOC_USAGE_HFR_MODE);
 		const unsigned int priv_heap_flag = is_hfr ? private_handle_t::PRIV_FLAGS_USES_HFR_MODE : 0;
 
 		auto hnd = new private_handle_t(
@@ -383,7 +387,7 @@ int mali_gralloc_ion_allocate(const gralloc_buffer_descriptor_t *descriptors,
 			for (uint32_t fidx = 0; fidx < bufDescriptor->fd_count; fidx++)
 			{
 				int& fd = hnd->fds[fidx];
-				fd = alloc_from_dmabuf_heap(usage, bufDescriptor->alloc_sizes[fidx]);
+				fd = alloc_from_dmabuf_heap(usage, bufDescriptor->alloc_sizes[fidx], use_placeholder);
 				if (fd < 0)
 				{
 					MALI_GRALLOC_LOGE("ion_alloc failed for fds[%u] = %d", fidx, fd);
@@ -394,6 +398,8 @@ int mali_gralloc_ion_allocate(const gralloc_buffer_descriptor_t *descriptors,
 			}
 		}
 	}
+
+	if (use_placeholder) return 0;
 
 #if defined(GRALLOC_INIT_AFBC) && (GRALLOC_INIT_AFBC == 1)
 	ATRACE_NAME("AFBC init block");

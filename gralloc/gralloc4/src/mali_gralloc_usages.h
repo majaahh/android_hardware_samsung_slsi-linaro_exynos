@@ -33,6 +33,7 @@
 namespace hidl_common = android::hardware::graphics::common::V1_1;
 
 #include <aidl/android/hardware/graphics/common/BufferUsage.h>
+#include <arm-gralloc/usage.h>
 namespace aidl_common = aidl::android::hardware::graphics::common;
 
 /* Local macro definitions to emulate Gralloc 1.0 usage interface */
@@ -79,6 +80,7 @@ typedef enum
 	GRALLOC_USAGE_SBWC_REQUEST_10BIT                       = GRALLOC_USAGE_PRIVATE_11,
 
 	GRALLOC_USAGE_ROIINFO                                  = GRALLOC_USAGE_PRIVATE_15,
+	GRALLOC_USAGE_PLACEHOLDER_BUFFER                       = ::arm::graphics::Usage::PLACEHOLDER_BUFFER,
 
 } mali_gralloc_usage_type;
 
@@ -140,6 +142,7 @@ static const uint64_t VALID_USAGE =
     GRALLOC_USAGE_SENSOR_DIRECT_DATA |      /* 1U << 23 */
     GRALLOC_USAGE_GPU_DATA_BUFFER |         /* 1U << 24 */
     GRALLOC_USAGE_FRONT_BUFFER |            /* 1U << 32 */
+    GRALLOC_USAGE_PLACEHOLDER_BUFFER |      /* 1U << 28 */
 
     GRALLOC_USAGE_ROIINFO |                 /* 1U << 52 */
     MALI_GRALLOC_USAGE_AFBC_PADDING |       /* 1U << 53 */

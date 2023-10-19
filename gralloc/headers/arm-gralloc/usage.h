@@ -39,8 +39,8 @@ enum Usage: uint64_t {
     MapUsage(VENDOR_MASK),
     MapUsage(VENDOR_MASK_HI),
 
-    // Used for AION to allocate DRY buffers
-    ALLOCATE_DRY = 1ULL << 28,
+    // Used for AION to allocate PLACEHOLDER buffers
+    PLACEHOLDER_BUFFER = 1ULL << 28,
     // Arm specific usage
     NO_COMPRESSION = 1ULL << 29,
 };

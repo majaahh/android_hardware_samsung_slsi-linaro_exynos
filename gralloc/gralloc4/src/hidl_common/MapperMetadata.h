@@ -55,7 +55,7 @@ class MetadataType {
  public:
 	std::string name;
 	uint64_t value;
-#ifdef GRALLOC_MAPPER_4
+#if defined(GRALLOC_MAPPER_4)
 	MetadataType(const IMapper::MetadataType &meta) {
 		name = meta.name;
 		value = meta.value;
@@ -66,7 +66,19 @@ class MetadataType {
 		meta.value = value;
 		return meta;
 	}
-#endif
+#elif defined(GRALLOC_MAPPER_5)
+	MetadataType(const AIMapper_MetadataType &meta) {
+			name = meta.name;
+			value = meta.value;
+	}
+	operator AIMapper_MetadataType() const {
+			AIMapper_MetadataType meta;
+			meta.name = strdup(name.c_str());
+			meta.value = value;
+			return meta;
+	}
+#endif // GRALLOC_MAPPER_4 or GRALLOC_MAPPER_5
+
 	MetadataType() {}
 	MetadataType(std::string strname, uint64_t val) {
 		name = strname;
@@ -84,7 +96,7 @@ struct MetadataTypeDescription {
 	const char* description;
 	bool isGettable;
 	bool isSettable;
-#ifdef GRALLOC_MAPPER_4
+#if defined(GRALLOC_MAPPER_4)
 	MetadataTypeDescription(const IMapper::MetadataTypeDescription &desc) {
 		metadataType = desc.metadataType;
 		description = (desc.description).c_str();
@@ -99,10 +111,26 @@ struct MetadataTypeDescription {
 		desc.isSettable = isSettable;
 		return desc;
 	}
-#endif
+#elif defined(GRALLOC_MAPPER_5)
+	MetadataTypeDescription(const AIMapper_MetadataTypeDescription &desc) {
+		metadataType = desc.metadataType;
+		description = strdup(desc.description);
+		isGettable = desc.isGettable;
+		isSettable = desc.isSettable;
+	}
+	operator AIMapper_MetadataTypeDescription() const {
+		AIMapper_MetadataTypeDescription desc;
+		desc.metadataType = static_cast<AIMapper_MetadataType>(metadataType);
+		desc.isGettable = isGettable;
+		desc.isSettable = isSettable;
+		desc.description = strdup(description);
+		return desc;
+	}
+
+#endif // GRALLOC_MAPPER_4 or GRALLOC_MAPPER_5
 	MetadataTypeDescription(MetadataType meta, const char* desc, bool gettable, bool settable) {
 		metadataType = meta;
-		description = desc;
+		description = strdup(desc);
 		isGettable = gettable;
 		isSettable = settable;
 	}
@@ -111,7 +139,7 @@ struct MetadataTypeDescription {
 struct MetadataDump {
 	MetadataType metadataType;
 	std::vector<uint8_t> metadata;
-#ifdef GRALLOC_MAPPER_4
+#if defined(GRALLOC_MAPPER_4)
 	MetadataDump(const IMapper::MetadataDump &meta) {
 		metadataType = MetadataType(meta.metadataType);
 		metadata = static_cast<std::vector<uint8_t> >(meta.metadata);
@@ -122,7 +150,7 @@ struct MetadataDump {
 		dump.metadata = hidl_vec(metadata);
 		return dump;
 	}
-#endif
+#endif // GRALLOC_MAPPER_4
 	MetadataDump() {}
 	MetadataDump(MetadataType metaType, std::vector<uint8_t> &meta) {
 		metadataType = metaType;
@@ -132,7 +160,7 @@ struct MetadataDump {
 
 struct BufferDump {
 	std::vector<MetadataDump> metadataDump;
-#ifdef GRALLOC_MAPPER_4
+#if defined(GRALLOC_MAPPER_4)
 	BufferDump(const IMapper::BufferDump &dump) {
 		for (auto meta : dump.metadataDump)
 			metadataDump.push_back(MetadataDump(meta));
@@ -146,7 +174,7 @@ struct BufferDump {
 		bufferdump.metadataDump = metaDump;
 		return bufferdump;
 	}
-#endif
+#endif // GRALLOC_MAPPER_4
 	BufferDump(std::vector<MetadataDump> &meta) { metadataDump = meta; }
 	BufferDump() {}
 };
@@ -193,9 +221,9 @@ Error set_metadata(const private_handle_t *handle, const MetadataType &metadataT
  *                                 UNSUPPORTED on unsupported metadata type.
  *                          metadata: Vector of bytes representing the metadata value.
  */
-#ifdef GRALLOC_MAPPER_4
+#if defined(GRALLOC_MAPPER_4)
 Error getFromBufferDescriptorInfo(IMapper::BufferDescriptorInfo const &description, MetadataType const &metadataType, std::vector<uint8_t> &outVec);
-#endif
+#endif // GRALLOC_MAPPER_4
 
 } // namespace common
 } // namespace mapper

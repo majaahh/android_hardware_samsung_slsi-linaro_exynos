@@ -37,6 +37,13 @@ using android::hardware::graphics::mapper::V4_0::IMapper;
 
 using frameworks_handle = android::hardware::hidl_handle;
 
-#endif // GRALLOC_MAPPER_4
+#elif defined(GRALLOC_MAPPER_5)
+
+#include <android/hardware/graphics/mapper/IMapper.h>
+#include <android/hardware/graphics/mapper/utils/IMapperMetadataTypes.h>
+#include <android/hardware/graphics/mapper/utils/IMapperProvider.h>
+using android::hardware::graphics::mapper::StandardMetadata;
+
+#endif // GRALLOC_MAPPER_4 or GRALLOC_MAPPER_5
 
 #endif // HIDL_COMMON

@@ -22,6 +22,7 @@
 #include <inttypes.h>
 #include "mali_gralloc_log.h"
 #include "core/mali_gralloc_bufferdescriptor.h"
+#include <android/rect.h>
 
 #include "MapperMetadata.h"
 #include "hidl_common.h"
@@ -51,14 +52,21 @@ class GrallocRect {
 		right = rect.right;
 		bottom = rect.bottom;
 	}
-#ifdef GRALLOC_MAPPER_4
+#if defined(GRALLOC_MAPPER_4)
 	GrallocRect(IMapper::Rect rect) {
 		left = rect.left;
 		top = rect.top;
 		right = rect.left + rect.width;
 		bottom = rect.top + rect.height;
 	}
-#endif
+#elif defined(GRALLOC_MAPPER_5)
+	GrallocRect(ARect rect) {
+		left = rect.left;
+		top = rect.top;
+		right = rect.right;
+		bottom = rect.bottom;
+	}
+#endif // GRALLOC_MAPPER_4 or GRALLOC_MAPPER_5
 };
 
 /**

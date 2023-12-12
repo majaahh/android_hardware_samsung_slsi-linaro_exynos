@@ -190,7 +190,17 @@ int32_t getStandardMetadataHelper(const private_handle_t* hnd, F&& provide,
     if constexpr (metadataType == StandardMetadataType::STRIDE) {
         std::vector<PlaneLayout> layouts;
         Error err = static_cast<Error>(common::get_plane_layouts(hnd, &layouts));
-        uint64_t stride = (layouts[0].strideInBytes * 8) / layouts[0].sampleIncrementInBits;
+        uint64_t stride = 0;
+        switch (hnd->get_alloc_format())
+        {
+            case HAL_PIXEL_FORMAT_RAW10:
+            case HAL_PIXEL_FORMAT_RAW12:
+                  stride = layouts[0].strideInBytes;
+                  break;
+            default:
+                  stride = (layouts[0].strideInBytes * 8) / layouts[0].sampleIncrementInBits;
+                  break;
+        }
         return provide(stride);
     }
     return -AIMapper_Error::AIMAPPER_ERROR_UNSUPPORTED;

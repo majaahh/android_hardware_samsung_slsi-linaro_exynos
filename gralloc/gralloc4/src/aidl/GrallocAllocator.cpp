@@ -166,8 +166,6 @@ ndk::ScopedAStatus GrallocAllocator::isSupported(
     if (isBufferDescriptorSupported) {
         MALI_GRALLOC_LOGV("Allocation for the given description will not succeed. error %d",
                           isBufferDescriptorSupported);
-        return ndk::ScopedAStatus::fromServiceSpecificError(
-                static_cast<int32_t>(AidlAllocator::AllocationError::UNSUPPORTED));
     }
     return ndk::ScopedAStatus::ok();
 }

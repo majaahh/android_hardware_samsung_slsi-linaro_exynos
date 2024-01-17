@@ -147,6 +147,8 @@ static const frameworks_vec<vecT> grallocEncodeBufferDescriptor(const BufferDesc
 	return descriptor;
 }
 
+#endif // GRALLOC_MAPPER_4
+
 template <typename vecT>
 static bool grallocDecodeBufferDescriptor(const frameworks_vec<vecT> &androidDescriptor, buffer_descriptor_t &grallocDescriptor)
 {
@@ -185,8 +187,6 @@ static bool grallocDecodeBufferDescriptor(const frameworks_vec<vecT> &androidDes
 
 	return true;
 }
-
-#endif // GRALLOC_MAPPER_4
 
 } // namespace common
 } // namespace mapper

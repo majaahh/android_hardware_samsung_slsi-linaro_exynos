@@ -20,9 +20,20 @@ package {
 }
 
 cc_defaults {
+    name: "arm_gralloc_version_stablec_defaults",
+    cflags: [
+        "-DGRALLOC_VERSION_MAJOR=5",
+        "-DHIDL_MAPPER_VERSION_SCALED=500",
+        "-DLOG_TAG=\"gralloc5\"",
+        "-DGRALLOC_MAPPER_5",
+    ],
+}
+
+cc_defaults {
     name: "arm_gralloc_api_stablec_defaults",
     defaults: [
         "arm_gralloc_defaults",
+        "arm_gralloc_version_stablec_defaults",
     ],
     relative_install_path: "hw/",
     shared_libs: [
@@ -49,11 +60,6 @@ cc_defaults {
         "libimapper_stablec",
         "libimapper_providerutils",
     ],
-    cflags: [
-        "-DLOG_TAG=\"gralloc5\"",
-        "-DGRALLOC_VERSION_MAJOR=5",
-    ],
-
 }
 
 cc_library_shared {
@@ -79,9 +85,6 @@ cc_library_shared {
     ],
     include_dirs: [
         "hardware/samsung_slsi-linaro/exynos/include",
-    ],
-    cflags: [
-        "-DGRALLOC_MAPPER_5",
     ],
     cpp_std: "c++20",
 }

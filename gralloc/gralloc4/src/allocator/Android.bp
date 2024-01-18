@@ -99,6 +99,7 @@ arm_gralloc_allocator_cc_defaults {
         "libsync",
         "libutils",
         "libnativewindow",
+        "android.hardware.graphics.common@1.2",
     ],
     header_libs: [
         "libnativebase_headers",

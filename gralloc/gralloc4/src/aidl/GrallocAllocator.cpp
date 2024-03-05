@@ -88,7 +88,7 @@ ndk::ScopedAStatus GrallocAllocator::allocate(const std::vector<uint8_t>& descri
     return ndk::ScopedAStatus::ok();
 }
 
-buffer_descriptor_t decodeBufferDescriptorInfo(
+buffer_descriptor_t toInternalDescriptor(
         const AidlAllocator::BufferDescriptorInfo& descriptor) {
     buffer_descriptor_t bufferDescriptor;
     bufferDescriptor.width = descriptor.width;
@@ -110,7 +110,7 @@ ndk::ScopedAStatus GrallocAllocator::allocate2(
         AidlAllocator::AllocationResult* result) {
     MALI_GRALLOC_LOGV("Allocation request from process: %lu", callingPid());
 
-    buffer_descriptor_t bufferDescriptor = decodeBufferDescriptorInfo(descriptor);
+    buffer_descriptor_t bufferDescriptor = toInternalDescriptor(descriptor);
 
     HidlError error = HidlError::NONE;
     auto hidl_cb = [&](HidlError _error, int _stride, hidl_vec<hidl_handle> _buffers) {
@@ -158,21 +158,18 @@ ndk::ScopedAStatus GrallocAllocator::allocate2(
 // TODO(b/315883761): isSupported should return false for unknown-to-HAL usage
 ndk::ScopedAStatus GrallocAllocator::isSupported(
         const AidlAllocator::BufferDescriptorInfo& descriptor, bool* result) {
-    buffer_descriptor_t bufferDescriptor = decodeBufferDescriptorInfo(descriptor);
+    buffer_descriptor_t bufferDescriptor = toInternalDescriptor(descriptor);
 
-    int isBufferDescriptorSupported = arm::allocator::common::isSupported(&bufferDescriptor);
-    *result = (isBufferDescriptorSupported == 0);
-
-    if (isBufferDescriptorSupported) {
-        MALI_GRALLOC_LOGV("Allocation for the given description will not succeed. error %d",
-                          isBufferDescriptorSupported);
+    *result = arm::allocator::common::isSupported(&bufferDescriptor);
+    if (!*result) {
+        MALI_GRALLOC_LOGV("Allocation for the given description will not succeed");
     }
     return ndk::ScopedAStatus::ok();
 }
 
 ndk::ScopedAStatus GrallocAllocator::getIMapperLibrarySuffix(std::string* result) {
-    *result = "";
-    return ndk::ScopedAStatus::fromStatus(STATUS_UNKNOWN_ERROR);
+    *result = "arm";
+    return ndk::ScopedAStatus::ok();
 }
 
 binder_status_t GrallocAllocator::dump(int fd, const char** /* args */, uint32_t numArgs) {

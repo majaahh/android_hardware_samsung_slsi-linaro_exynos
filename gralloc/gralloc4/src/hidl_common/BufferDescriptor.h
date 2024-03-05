@@ -29,6 +29,7 @@ namespace arm {
 namespace mapper {
 namespace common {
 
+constexpr uint32_t HIDL_MAPPER_4_DESCRIPTOR_VERSION = 40;
 const size_t DESCRIPTOR_32BIT_FIELDS = 5;
 const size_t DESCRIPTOR_64BIT_FIELDS = 2;
 
@@ -131,7 +132,7 @@ static const frameworks_vec<vecT> grallocEncodeBufferDescriptor(const BufferDesc
 
 	size_t pos = 0;
 	descriptor.resize(dynamic_size + static_size);
-	push_descriptor_uint32(&descriptor, &pos, HIDL_MAPPER_VERSION_SCALED / 10);
+	push_descriptor_uint32(&descriptor, &pos, HIDL_MAPPER_4_DESCRIPTOR_VERSION);
 	push_descriptor_uint32(&descriptor, &pos, descriptorInfo.width);
 	push_descriptor_uint32(&descriptor, &pos, descriptorInfo.height);
 	push_descriptor_uint32(&descriptor, &pos, descriptorInfo.layerCount);
@@ -168,7 +169,7 @@ static bool grallocDecodeBufferDescriptor(const frameworks_vec<vecT> &androidDes
 		return false;
 	}
 
-	if (pop_descriptor_uint32(androidDescriptor, &pos) != HIDL_MAPPER_VERSION_SCALED / 10)
+	if (pop_descriptor_uint32(androidDescriptor, &pos) != HIDL_MAPPER_4_DESCRIPTOR_VERSION)
 	{
 		MALI_GRALLOC_LOGE("Corrupted buffer version in descriptor = %p, pid = %d ", &androidDescriptor, getpid());
 		return false;

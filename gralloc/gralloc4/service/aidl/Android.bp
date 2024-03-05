@@ -28,5 +28,6 @@ cc_binary {
     ],
     required: [
         "android.hardware.graphics.allocator-aidl-impl",
+        "mapper.arm",
     ],
 }

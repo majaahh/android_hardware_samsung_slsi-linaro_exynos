@@ -1,4 +1,5 @@
-#define LOG_TAG "gralloc-V1-service"
+#undef LOG_TAG
+#define LOG_TAG "gralloc-allocator"
 
 #include <android/binder_ibinder_platform.h>
 #include <android/binder_manager.h>

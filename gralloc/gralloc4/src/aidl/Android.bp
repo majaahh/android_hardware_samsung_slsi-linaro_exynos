@@ -7,13 +7,14 @@ cc_library_shared {
     proprietary: true,
     relative_install_path: "hw",
     defaults: [
-        "arm_gralloc_api_4x_defaults",
+        "arm_gralloc_api_stablec_defaults",
         "libexynos_headers_c2_defaults",
     ],
     shared_libs: [
-        "android.hardware.graphics.allocator-V1-ndk",
+        "android.hardware.graphics.allocator-V2-ndk",
         "android.hardware.graphics.allocator@4.0",
         "libbinder_ndk",
+        "libhidlbase",
     ],
     static_libs: [
         "libaidlcommonsupport",
@@ -26,8 +27,6 @@ cc_library_shared {
     include_dirs: [
         "hardware/samsung_slsi-linaro/exynos/include",
     ],
-    cflags: [
-        "-DGRALLOC_MAPPER_4",
-    ],
+    cpp_std: "c++20",
 }
 

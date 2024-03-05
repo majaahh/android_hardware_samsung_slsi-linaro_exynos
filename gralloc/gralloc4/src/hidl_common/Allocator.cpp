@@ -254,6 +254,11 @@ const std::string dump() {
 	return ss.str();
 }
 
+bool isSupported(buffer_descriptor_t *const bufDescriptor) {
+        // this is used as the criteria to determine which allocations succeed.
+        return (mali_gralloc_derive_format_and_size(bufDescriptor) == 0);
+}
+
 } // namespace common
 } // namespace allocator
 } // namespace arm

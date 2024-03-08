@@ -97,6 +97,7 @@ buffer_descriptor_t toInternalDescriptor(
     bufferDescriptor.format_type = MALI_GRALLOC_FORMAT_TYPE_USAGE;
     bufferDescriptor.signature = sizeof(buffer_descriptor_t);
     bufferDescriptor.reserved_size = descriptor.reservedSize;
+    bufferDescriptor.additional_options = descriptor.additionalOptions;
     const char *str = (const char*) descriptor.name.data();
     bufferDescriptor.name = std::string(str);
     return bufferDescriptor;
@@ -152,7 +153,6 @@ ndk::ScopedAStatus GrallocAllocator::allocate2(
     return ndk::ScopedAStatus::ok();
 }
 
-// TODO(b/315883761): isSupported should return false for unknown-to-HAL usage
 ndk::ScopedAStatus GrallocAllocator::isSupported(
         const AidlAllocator::BufferDescriptorInfo& descriptor, bool* result) {
     buffer_descriptor_t bufferDescriptor = toInternalDescriptor(descriptor);

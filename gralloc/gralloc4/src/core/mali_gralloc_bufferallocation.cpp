@@ -584,7 +584,11 @@ static bool validate_descriptor(buffer_descriptor_t * const bufDescriptor) {
 	}
 
 	if (usage & INVALID_USAGE) {
-		return -EINVAL;
+		return false;
+	}
+
+	if (!bufDescriptor->additional_options.empty()) {
+		return false;
 	}
 
 	// BLOB formats are used for some ML models whose size can be really large (up to 2GB)

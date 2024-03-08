@@ -22,6 +22,7 @@
 #include "mali_gralloc_buffer.h"
 #include "mali_gralloc_formats.h"
 #include <string>
+#include <aidl/android/hardware/graphics/common/ExtendableType.h>
 
 typedef uint64_t gralloc_buffer_descriptor_t;
 
@@ -43,6 +44,7 @@ struct buffer_descriptor_t
 	mali_gralloc_format_type format_type;
 	std::string name;
 	uint64_t reserved_size;
+	std::vector<::aidl::android::hardware::graphics::common::ExtendableType> additional_options;
 
 	/*
 	 * Calculated values that will be passed to the allocator in order to

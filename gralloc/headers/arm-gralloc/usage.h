@@ -8,7 +8,7 @@ namespace arm::graphics {
 using FrameworkUsage = aidl::android::hardware::graphics::common::BufferUsage;
 
 #define MapUsage(f) \
-   f = static_cast<uint32_t>(FrameworkUsage::f)
+   f = static_cast<uint64_t>(FrameworkUsage::f)
 
 enum Usage: uint64_t {
     MapUsage(CPU_READ_MASK),

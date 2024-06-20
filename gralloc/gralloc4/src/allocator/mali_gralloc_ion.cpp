@@ -26,7 +26,6 @@
 #include <limits.h>
 #include <fcntl.h>
 
-#include <log/log.h>
 #include <cutils/atomic.h>
 #include <utils/Trace.h>
 
@@ -442,11 +441,21 @@ int mali_gralloc_ion_allocate(const gralloc_buffer_descriptor_t *descriptors,
 				const plane_info_t *plane_info = bufDescriptor->plane_info;
 				assert(plane_info);
 				const bool is_multi_plane = hnd->is_multi_plane();
+				/* We'll need bpp for initialize header pointers*/
+				const uint32_t base_format = bufDescriptor->alloc_format & MALI_GRALLOC_INTFMT_FMT_MASK;
+				int32_t format_idx = get_format_index(base_format);
+				if (format_idx == -1)
+				{
+					MALI_GRALLOC_LOGE("Unknown format %" PRIx32 ", AFBC initialization is impossible", base_format);
+					mali_gralloc_ion_free_internal(pHandle, numDescriptors);
+					return -1;
+				}
 				for (int i = 0; i < MAX_PLANES && (i == 0 || plane_info[i].byte_stride != 0); i++)
 				{
 					init_afbc(cpu_ptr + plane_info[i].offset,
 					          bufDescriptor->alloc_format,
 					          is_multi_plane,
+					          formats[format_idx].bpp_afbc[i],
 					          plane_info[i].alloc_width,
 					          plane_info[i].alloc_height);
 				}

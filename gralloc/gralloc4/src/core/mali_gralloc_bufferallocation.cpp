@@ -324,12 +324,6 @@ void init_afbc(uint8_t *buf, const uint64_t alloc_format,
 		{ ((uint32_t)body_offset + (1 << 28)), 0x80200040, 0x1004000, 0x20080 } /* Layouts 1, 5 */
 	};
 
-	if (is_tiled)
-	{
-		/* Zero out body_offset for non-subsampled formats. */
-		memset(headers[0], 0, sizeof(headers[0]));
-	}
-
 	/* Map base format to AFBC header layout */
 	const uint32_t base_format = alloc_format & MALI_GRALLOC_INTFMT_FMT_MASK;
 
@@ -345,6 +339,16 @@ void init_afbc(uint8_t *buf, const uint64_t alloc_format,
 	 * Seperated plane only supports 64x4 for subsequent planes, so these must be header layout 7.
 	 */
 	const uint32_t layout = is_subsampled_yuv(base_format) && !is_multi_plane ? 1 : 0;
+
+	/*
+	 * Solid colour blocks:  AFBC 1.2
+	 * This storage method is permitted for superblock_layout 0, 3, 4, or 7 with 64 bits per pixel or less.
+	 * In this case the value of the pixel is stored least significant bit aligned in bits[127:64] of the header, the payload is 0s.
+	 */
+	if (is_tiled && layout == 0 && bpp <= 64)
+	{
+		memset(headers[0], 0, sizeof(uint32_t) * 4);
+	}
 
 	/* We initialize only linear layouts*/
 	const size_t sb_bytes = is_tiled? 0 : GRALLOC_ALIGN((bpp * AFBC_PIXELS_PER_BLOCK) / 8, 128);

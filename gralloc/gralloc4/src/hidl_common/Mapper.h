@@ -278,6 +278,11 @@ std::vector<BufferDump> dumpBuffers();
  */
 Error getReservedRegion(buffer_handle_t buffer, void **outReservedRegion, uint64_t &outReservedSize);
 
+#ifdef GRALLOC_MAPPER_5
+int32_t getStandardMetadata(const private_handle_t *handle, StandardMetadataType metadata_type,
+                            void *outData, size_t outDataSize);
+#endif
+
 } // namespace common
 } // namespace mapper
 } // namespace arm

@@ -183,7 +183,7 @@ int32_t getStandardMetadataHelper(const private_handle_t* hnd, F&& provide,
                   stride = layouts[0].strideInBytes;
                   break;
             default:
-                  stride = (layouts[0].strideInBytes * 8) / layouts[0].sampleIncrementInBits;
+                  stride = hnd->plane_info[0].alloc_width;
                   break;
         }
         return provide(stride);

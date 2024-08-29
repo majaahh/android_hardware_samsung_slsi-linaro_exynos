@@ -39,6 +39,7 @@ cc_defaults {
         "arm_gralloc_defaults",
         "arm_gralloc_version_defaults",
     ],
+    vintf_fragments: ["manifest.xml"],
     compile_multilib: "both",
     relative_install_path: "hw/",
     shared_libs: [

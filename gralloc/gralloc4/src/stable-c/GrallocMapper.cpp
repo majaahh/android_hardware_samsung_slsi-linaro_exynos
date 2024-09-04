@@ -48,10 +48,19 @@ AIMapper_Error GrallocMapper::freeBuffer(buffer_handle_t _Nonnull buffer) {
 AIMapper_Error GrallocMapper::lock(buffer_handle_t _Nonnull buffer, uint64_t cpuUsage,
                                    ARect accessRegion, int acquireFence,
                                    void* _Nullable* _Nonnull outData) {
-    if (buffer == nullptr) return AIMapper_Error::AIMAPPER_ERROR_BAD_BUFFER;
-    AIMapper_Error err = static_cast<AIMapper_Error>(common::lock(buffer, cpuUsage,
-                                                                  common::GrallocRect(accessRegion),
-                                                                  acquireFence, outData));
+    AIMapper_Error err = AIMapper_Error::AIMAPPER_ERROR_NONE;
+    if (buffer == nullptr) {
+        err = AIMapper_Error::AIMAPPER_ERROR_BAD_BUFFER;
+    } else {
+        err = static_cast<AIMapper_Error>(common::lock(buffer, cpuUsage,
+                                                       common::GrallocRect(accessRegion),
+                                                       acquireFence, outData));
+    }
+    // we own acquireFence, but common::lock doesn't take ownership
+    // so, we have to close it anyway
+    if (acquireFence >= 0) {
+        close(acquireFence);
+    }
     return err;
 }
 

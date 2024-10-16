@@ -1476,13 +1476,6 @@ uint64_t mali_gralloc_select_format(const uint64_t req_format,
 			MALI_GRALLOC_LOGV("Producer or consumer not identified.");
 		}
 
-		if ((usage & MALI_GRALLOC_USAGE_NO_AFBC) == MALI_GRALLOC_USAGE_NO_AFBC &&
-		    formats[req_fmt_idx].is_yuv)
-		{
-			MALI_GRALLOC_LOGE("ERROR: Invalid usage 'MALI_GRALLOC_USAGE_NO_AFBC' when allocating YUV formats");
-			goto out;
-		}
-
 		uint64_t producer_active_caps = producer_caps;
 		uint64_t consumer_active_caps = consumer_caps;
 		uint64_t consumer_caps_mask;

@@ -31,14 +31,43 @@ assert(not is_partial_comment("/* /* */"))
 assert(is_partial_comment("/* */ /"))
 assert(is_partial_comment("/* */ /*"))
 
+def is_line_ignored(line):
+	stripped = line.lstrip()
+	return (stripped == "") or stripped.startswith("/*") or stripped.startswith("//") or stripped.startswith("#")
+
+def is_preprocessor(line):
+	return line.lstrip().startswith("#")
+
 def collineate(lines):
 	ret = []
 	current_line = ""
+	depth = 0
 	for line in lines:
+		if is_line_ignored(line) and not is_partial_comment(line) and not is_partial_comment(current_line) and not is_partial_comment(current_line + line):
+			if current_line != "":
+				ret.append(current_line)
+				current_line = ""
+			for c in line:
+				if c == "{":
+					depth += 1
+				elif c == "}":
+					if depth == 0:
+						sys.exit("Too many close braces on line:\n{}".format(line))
+					depth -= 1
+			ret.append(line)
+			continue
 		current_line = current_line + line
-		if braces_match(current_line) and not is_partial_comment(current_line):
-			ret.append(current_line)
-			current_line = ""
+		for c in line:
+			if c == "{":
+				depth += 1
+			elif c == "}":
+				if depth == 0:
+					sys.exit("Too many close braces on line:\n{}".format(line))
+				depth -= 1
+		if depth == 0 and not is_partial_comment(current_line):
+			if current_line != "":
+				ret.append(current_line)
+				current_line = ""
 	if current_line != "":
 		ret.append(current_line)
 	return ret
@@ -47,10 +76,6 @@ assert(collineate(["/*", "...", "*/"]) == ["/*...*/"])
 assert(collineate(["{", "/*", "*/", "}"]) == ["{/**/}"])
 assert(collineate(["{", "{", "}", "}"]) == ["{{}}"])
 assert(collineate(["{", "}", "{", "}"]) == ["{}", "{}"])
-
-def is_line_ignored(line):
-	stripped = line.lstrip()
-	return (stripped == "") or stripped.startswith("/*") or stripped.startswith("//")
 
 def pack(line):
 	if is_line_ignored(line):
@@ -91,6 +116,10 @@ def has_an_offset(c):
 def get_offsets(line):
 	if is_line_ignored(line):
 		return None
+	if not braces_match(line):
+		return None
+	if "{" not in line:
+		return None
 	ret = []
 	offset = -1
 	for c in line:
@@ -101,20 +130,7 @@ def get_offsets(line):
 	return ret
 
 def check_offsets(lines, offsets_list):
-	reference_index = -1
-	for line in lines:
-		reference_index = reference_index + 1
-		if not is_line_ignored(line):
-			break
-	if reference_index == len(lines):
-		return # no lines to check
-	index = -1
-	for offsets in offsets_list:
-		index = index + 1
-		if offsets == None:
-			continue
-		if len(offsets) != len(offsets_list[reference_index]):
-			sys.exit("Lines have differing numbers of offsets:\n" + lines[index] + "\n" + lines[reference_index])
+	return
 
 def collect_max_offsets(offsets_list):
 	max_offsets = None
@@ -122,14 +138,24 @@ def collect_max_offsets(offsets_list):
 		if offsets == None:
 			continue
 		if max_offsets == None:
-			max_offsets = offsets
+			max_offsets = list(offsets)
 			continue
-		for index in range(len(max_offsets)):
+		if len(offsets) > len(max_offsets):
+			max_offsets.extend(offsets[len(max_offsets):])
+		for index in range(len(offsets)):
 			if max_offsets[index] < offsets[index]:
 				max_offsets[index] = offsets[index]
 	return max_offsets
 
 def fix_offsets(line, target_offsets):
+	if is_line_ignored(line):
+		return line
+	if target_offsets is None:
+		return line
+	if not braces_match(line):
+		return line
+	if "{" not in line:
+		return line
 	ret = ""
 	offset_index = 0
 	offset = -1
@@ -137,18 +163,38 @@ def fix_offsets(line, target_offsets):
 		offset = offset + 1
 		ret = ret + c
 		if has_an_offset(c):
-			ret = ret + " " * (target_offsets[offset_index] - offset)
+			if offset_index < len(target_offsets):
+				ret = ret + " " * (target_offsets[offset_index] - offset)
 			offset_index = offset_index + 1
 			offset = 0
 	return ret
 
 def align_section(lines, args):
+	has_pp = any(l.lstrip().startswith("#") for l in lines)
+	if has_pp:
+		lines = collineate(lines)
+		fixed = []
+		for l in lines:
+			stripped = l.lstrip()
+			if stripped.startswith("."):
+				content = prettify(pack(stripped)).rstrip()
+				fixed.append("\t    " + content)
+			elif stripped == "}," or stripped == "}":
+				if stripped == "},":
+					fixed.append("\t},")
+				else:
+					fixed.append("\t}")
+			else:
+				fixed.append(l)
+		return fixed
 	lines = collineate(lines)
 	lines = [pack(l) for l in lines]
 	lines = [prettify(l) for l in lines]
 	lines = [l.rstrip() for l in lines]
 	offsets_list = [get_offsets(l) for l in lines]
 	target_offsets = collect_max_offsets(offsets_list)
+	if target_offsets is None:
+		return lines
 	lines = [fix_offsets(l, target_offsets) for l in lines]
 	return lines
 
@@ -180,9 +226,9 @@ if __name__ == '__main__':
 
 	if args.file:
 		with open(args.file) as fd:
-			lines = [l.rstrip() for l in fd.readlines()]
+			lines = [l.rstrip("\n") for l in fd.readlines()]
 	else:
-		lines = [l.rstrip() for l in sys.stdin.readlines()]
+		lines = [l.rstrip("\n") for l in sys.stdin.readlines()]
 
 	for line in align_file(lines, args):
 		print(line)

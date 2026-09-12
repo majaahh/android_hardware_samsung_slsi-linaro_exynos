@@ -1,0 +1,80 @@
+package {
+    default_applicable_licenses: ["Android-Apache-2.0"],
+}
+
+soong_config_module_type {
+    name: "gralloc_defaults",
+    module_type: "cc_defaults",
+    config_namespace: "exynos_gralloc",
+    variables: [
+        "mapper_version",
+    ],
+    properties: [
+        "cflags",
+    ],
+}
+
+soong_config_string_variable {
+    name: "mapper_version",
+    values: [
+        "mapper4",
+        "mapper5",
+    ],
+}
+
+gralloc_defaults {
+    name: "mapper-version-defaults",
+    soong_config_variables: {
+        mapper_version: {
+            mapper5: {
+                cflags: [
+                    "-DMAPPER_5",
+                ],
+            },
+            mapper4: {
+                cflags: [
+                    "-DMAPPER_4",
+                ],
+            },
+        },
+    },
+}
+
+cc_defaults {
+    name: "exynos-gralloc-headers-dependencies",
+    defaults: [
+        "android.hardware.graphics.common-ndk_shared",
+        "mapper-version-defaults",
+    ],
+    shared_libs: [
+        "android.hardware.graphics.mapper@4.0",
+        "libgralloctypes",
+        "libvndksupport",
+    ],
+    header_libs: [
+        "libimapper_stablec",
+        "libimapper_providerutils",
+    ],
+}
+
+cc_library_headers {
+    name: "exynos-gralloc-headers",
+    // TODO(270442578): Change to vendor: true
+    vendor_available: true,
+    defaults: [
+        "exynos-gralloc-headers-dependencies",
+        "mapper-version-defaults",
+    ],
+    export_include_dirs: [
+        ".",
+    ],
+    visibility: [
+        "//visibility:public",
+    ],
+    // should be platform available since this header is used in lib_aion_buffer which is platform-available
+    apex_available: [
+        "//apex_available:platform",
+        "//apex_available:anyapex",
+    ],
+
+}

@@ -29,6 +29,8 @@
 class RegisteredHandlePool
 {
 public:
+	static RegisteredHandlePool& getInstance();
+
 	/* Stores the buffer handle in the internal list */
 	bool add(buffer_handle_t bufferHandle);
 

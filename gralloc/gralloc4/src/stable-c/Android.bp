@@ -69,11 +69,13 @@ cc_library_shared {
         "libexynos_headers_c2_defaults",
     ],
     vintf_fragments: ["manifest.xml"],
+    required: ["android.hardware.graphics.mapper@4.0-impl"],
     static_libs: [
         "libgralloc_drmutils",
     ],
     shared_libs: [
         "arm.graphics-V1-ndk",
+        "libgralloc_registered_handle_pool",
         "libhidlbase",
         "libcutils",
     ],

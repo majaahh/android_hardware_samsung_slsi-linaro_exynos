@@ -39,7 +39,7 @@ cc_defaults {
         "arm_gralloc_defaults",
         "arm_gralloc_version_defaults",
     ],
-    vintf_fragments: ["manifest.xml"],
+    vintf_fragments: ["manifest_exynos_mapper4.xml"],
     compile_multilib: "both",
     relative_install_path: "hw/",
     shared_libs: [
@@ -80,6 +80,7 @@ cc_library_shared {
     ],
     shared_libs: [
         "arm.graphics-V1-ndk",
+        "libgralloc_registered_handle_pool",
         "android.hardware.graphics.mapper@4.0",
     ],
     srcs: [

@@ -26,8 +26,14 @@ filegroup {
     name: "libgralloc_hidl_common_mapper",
     srcs: [
         "Mapper.cpp",
-        "RegisteredHandlePool.cpp",
     ],
+}
+
+cc_library_shared {
+    name: "libgralloc_registered_handle_pool",
+    vendor: true,
+    srcs: ["RegisteredHandlePool.cpp"],
+    header_libs: ["libcutils_headers"],
 }
 
 filegroup {

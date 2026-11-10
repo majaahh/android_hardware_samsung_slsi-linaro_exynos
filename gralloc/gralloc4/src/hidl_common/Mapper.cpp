@@ -38,23 +38,12 @@
 #include <array>
 #include <cstdio>
 
-/* GraphicBufferMapper is expected to be valid (and leaked) during process
- * termination. IMapper, and in turn, gRegisteredHandles must be valid as
- * well. Create the registered handle pool on the heap, and let
- * it leak for simplicity.
- *
- * However, there is no way to make sure gralloc0/gralloc1 are valid. Any use
- * of static/global object in gralloc0/gralloc1 that may have been destructed
- * is potentially broken.
- */
-RegisteredHandlePool* gRegisteredHandles = new RegisteredHandlePool;
-
 namespace arm {
 namespace mapper {
 namespace common {
 
 buffer_handle_t getBuffer(void *buffer) {
-	return gRegisteredHandles->get(buffer);
+	return RegisteredHandlePool::getInstance().get(buffer);
 }
 
 /*
@@ -282,7 +271,7 @@ Error importBuffer(const native_handle_t *inBuffer, buffer_handle_t *outBuffer)
 		return Error::NO_RESOURCES;
 	}
 
-	if (gRegisteredHandles->add(bufferHandle) == false)
+	if (RegisteredHandlePool::getInstance().add(bufferHandle) == false)
 	{
 		/* The newly cloned handle is already registered. This can only happen
 		 * when a handle previously registered was native_handle_delete'd instead
@@ -302,7 +291,7 @@ Error importBuffer(const native_handle_t *inBuffer, buffer_handle_t *outBuffer)
 
 Error freeBuffer(buffer_handle_t bufferHandle)
 {
-	native_handle_t *handle = gRegisteredHandles->remove(bufferHandle);
+	native_handle_t *handle = RegisteredHandlePool::getInstance().remove(bufferHandle);
 	if (handle == nullptr)
 	{
 		MALI_GRALLOC_LOGE("Invalid buffer handle %p to freeBuffer", bufferHandle);
@@ -338,7 +327,7 @@ Error lock(buffer_handle_t bufferHandle, uint64_t cpuUsage, const GrallocRect &a
 
 Error unlock(buffer_handle_t bufferHandle, int *releaseFence) {
 	if(bufferHandle == nullptr) return Error::BAD_BUFFER;
-	if(!gRegisteredHandles->isRegistered(bufferHandle)) {
+	if(!RegisteredHandlePool::getInstance().isRegistered(bufferHandle)) {
 		MALI_GRALLOC_LOGE("Buffer to unlock: %p has not been registered with Gralloc",
 		    bufferHandle);
 		return Error::BAD_BUFFER;
@@ -353,7 +342,7 @@ Error validateBufferSize(void* buffer,
                          uint32_t in_stride)
 {
 	/* The buffer must have been allocated by Gralloc */
-	buffer_handle_t bufferHandle = gRegisteredHandles->get(buffer);
+	buffer_handle_t bufferHandle = RegisteredHandlePool::getInstance().get(buffer);
 	if (!bufferHandle)
 	{
 		MALI_GRALLOC_LOGE("Buffer: %p has not been registered with Gralloc", buffer);
@@ -676,7 +665,7 @@ Error dumpBuffer(buffer_handle_t buffer, BufferDump &bufferDump)
 std::vector<BufferDump> dumpBuffers()
 {
 	std::vector<BufferDump> bufferDumps;
-	gRegisteredHandles->for_each([&bufferDumps](buffer_handle_t buffer) {
+	RegisteredHandlePool::getInstance().for_each([&bufferDumps](buffer_handle_t buffer) {
 		BufferDump bufferDump { dumpBufferHelper(static_cast<const private_handle_t *>(buffer)) };
 		bufferDumps.push_back(bufferDump);
 	});

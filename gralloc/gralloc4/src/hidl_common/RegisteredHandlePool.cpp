@@ -18,6 +18,13 @@
 
 #include "RegisteredHandlePool.h"
 
+RegisteredHandlePool& RegisteredHandlePool::getInstance()
+{
+    // Keep the shared registry alive through GraphicBufferMapper teardown.
+    static auto *const pool = new RegisteredHandlePool;
+    return *pool;
+}
+
 bool RegisteredHandlePool::add(buffer_handle_t bufferHandle)
 {
     std::lock_guard<std::mutex> lock(mutex);

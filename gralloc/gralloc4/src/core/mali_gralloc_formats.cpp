@@ -85,12 +85,11 @@ static uint16_t get_consumers(uint64_t usage)
 			consumers |= MALI_GRALLOC_CONSUMER_CPU;
 		}
 
-		/* GRALLOC_USAGE_HW_FB describes a framebuffer which contains a
-		 * pre-composited scene that is scanned-out to a display. This buffer
-		 * can be consumed by even the most basic display processor which does
-		 * not support multi-layer composition.
+		/* Framebuffers and hardware cursor layers are scanned out by the DPU.
+		 * Cursor usage also needs to identify the consumer when requested alone
+		 * by the framework's cursor plane compatibility query.
 		 */
-		if (usage & GRALLOC_USAGE_HW_FB)
+		if (usage & (GRALLOC_USAGE_HW_FB | GRALLOC_USAGE_CURSOR))
 		{
 			consumers |= MALI_GRALLOC_CONSUMER_DPU;
 		}

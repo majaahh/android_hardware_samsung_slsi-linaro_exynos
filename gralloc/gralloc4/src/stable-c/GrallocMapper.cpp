@@ -196,10 +196,11 @@ AIMapper_Error GrallocMapper::dumpBuffer(buffer_handle_t _Nonnull bufferHandle,
     if (bufferHandle == nullptr) return AIMapper_Error::AIMAPPER_ERROR_BAD_BUFFER;
     common::BufferDump out;
     AIMapper_Error err = static_cast<AIMapper_Error>(common::dumpBuffer(bufferHandle, out));
+    if (err != AIMapper_Error::AIMAPPER_ERROR_NONE) return err;
     for (auto metadump : out.metadataDump) {
         dumpBufferCallback(context, static_cast<AIMapper_MetadataType>(metadump.metadataType),
                            static_cast<void*>((metadump.metadata).data()),
-                           sizeof(metadump.metadata));
+                           metadump.metadata.size());
     }
     return AIMapper_Error::AIMAPPER_ERROR_NONE;
 }
@@ -213,7 +214,7 @@ AIMapper_Error GrallocMapper::dumpAllBuffers(
         for (auto metadump : dump.metadataDump) {
             dumpBufferCallback(context, static_cast<AIMapper_MetadataType>(metadump.metadataType),
                                static_cast<void*>((metadump.metadata).data()),
-                               sizeof(metadump.metadata));
+                               metadump.metadata.size());
         }
     }
     return AIMapper_Error::AIMAPPER_ERROR_NONE;

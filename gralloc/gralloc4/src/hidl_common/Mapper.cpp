@@ -798,24 +798,29 @@ static BufferDump dumpBufferHelper(const private_handle_t *handle)
 	for (const auto& metadataType: standardMetadataTypes)
 	{
 		std::vector<uint8_t> metadata;
-#ifdef GRALLOC_MAPPER_4
-		Error error = get_metadata(handle, metadataType, metadata);
-#else
-		Error error;
-		auto tmp_err =
-			::arm::mapper::common::getStandardMetadata(handle,
-								   static_cast<
-								   StandardMetadataType>(
-								   metadataType.value),
-								   metadata.data(), metadata.size());
-		if (tmp_err > 0) {
-			metadata.resize(tmp_err);
-			::arm::mapper::common::getStandardMetadata(handle,
-								   static_cast<StandardMetadataType>(
-								   metadataType.value),
-								   metadata.data(), metadata.size());
+#ifdef GRALLOC_MAPPER_5
+		const auto type = static_cast<StandardMetadataType>(metadataType.value);
+		int32_t result = getStandardMetadata(handle, type, nullptr, 0);
+		if (result >= 0)
+		{
+			metadata.resize(result);
+			result = getStandardMetadata(handle, type, metadata.data(), metadata.size());
 		}
-		error = static_cast<Error>(-1 * tmp_err);
+		Error error = Error::NONE;
+		if (result < 0)
+		{
+			error = static_cast<Error>(-result);
+		}
+		else if (static_cast<size_t>(result) > metadata.size())
+		{
+			error = Error::NO_RESOURCES;
+		}
+		else
+		{
+			metadata.resize(result);
+		}
+#else
+		Error error = get_metadata(handle, metadataType, metadata);
 #endif
 		if (error == Error::NONE)
 		{
